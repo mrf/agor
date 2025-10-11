@@ -191,6 +191,7 @@ export const boards = sqliteTable(
         sessions: string[]; // Session IDs
         color?: string;
         icon?: string;
+        layout?: Record<string, { x: number; y: number }>; // Session positions
       }>()
       .notNull(),
   },

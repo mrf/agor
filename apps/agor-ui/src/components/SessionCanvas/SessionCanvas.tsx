@@ -1,5 +1,6 @@
+import type { AgorClient } from '@agor/core/api';
 import type { User } from '@agor/core/types';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Background,
   Controls,
@@ -7,15 +8,18 @@ import {
   MarkerType,
   MiniMap,
   type Node,
+  type NodeDragHandler,
   ReactFlow,
   useEdgesState,
   useNodesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import type { Session, Task } from '../../types';
+import type { Board, Session, Task } from '../../types';
 import SessionCard from '../SessionCard';
 
 interface SessionCanvasProps {
+  board: Board | null;
+  client: AgorClient | null;
   sessions: Session[];
   tasks: Record<string, Task[]>;
   users: User[];
@@ -63,6 +67,8 @@ const nodeTypes = {
 };
 
 const SessionCanvas = ({
+  board,
+  client,
   sessions,
   tasks,
   users,
@@ -72,6 +78,13 @@ const SessionCanvas = ({
   onSessionUpdate,
   onSessionDelete,
 }: SessionCanvasProps) => {
+  // Debounce timer ref for position updates
+  const layoutUpdateTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingLayoutUpdatesRef = useRef<Record<string, { x: number; y: number }>>({});
+  const isDraggingRef = useRef(false);
+  // Track positions we've explicitly set (to avoid being overwritten by other clients)
+  const localPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
+
   // Convert sessions to React Flow nodes
   const initialNodes: Node[] = useMemo(() => {
     // Simple layout algorithm: place nodes vertically with offset for children
@@ -109,7 +122,11 @@ const SessionCanvas = ({
 
     // Convert to React Flow nodes
     return sessions.map(session => {
-      const position = nodeMap.get(session.session_id) || { x: 0, y: 0 };
+      // Use stored position from board layout if available, otherwise use auto-layout
+      const storedPosition = board?.layout?.[session.session_id];
+      const autoPosition = nodeMap.get(session.session_id) || { x: 0, y: 0 };
+      const position = storedPosition || autoPosition;
+
       return {
         id: session.session_id,
         type: 'sessionNode',
@@ -129,6 +146,7 @@ const SessionCanvas = ({
       };
     });
   }, [
+    board?.layout,
     sessions,
     tasks,
     users,
@@ -187,9 +205,116 @@ const SessionCanvas = ({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-  // Sync nodes when sessions or tasks change (WebSocket updates)
+  // Handle node drag start
+  const handleNodeDragStart: NodeDragHandler = useCallback(() => {
+    isDraggingRef.current = true;
+  }, []);
+
+  // Handle node drag - track local position changes
+  const handleNodeDrag: NodeDragHandler = useCallback((_event, node) => {
+    // Track this position locally so we don't get overwritten by WebSocket updates
+    localPositionsRef.current[node.id] = {
+      x: node.position.x,
+      y: node.position.y,
+    };
+  }, []);
+
+  // Handle node drag end - persist layout to board (debounced)
+  const handleNodeDragStop: NodeDragHandler = useCallback(
+    (_event, node) => {
+      if (!board || !client) return;
+
+      // Track final position locally
+      localPositionsRef.current[node.id] = {
+        x: node.position.x,
+        y: node.position.y,
+      };
+
+      // Accumulate position updates
+      pendingLayoutUpdatesRef.current[node.id] = {
+        x: node.position.x,
+        y: node.position.y,
+      };
+
+      // Clear existing timer
+      if (layoutUpdateTimerRef.current) {
+        clearTimeout(layoutUpdateTimerRef.current);
+      }
+
+      // Debounce: wait 500ms after last drag before persisting
+      layoutUpdateTimerRef.current = setTimeout(async () => {
+        const updates = pendingLayoutUpdatesRef.current;
+        pendingLayoutUpdatesRef.current = {};
+        isDraggingRef.current = false;
+
+        try {
+          // CRITICAL: Only update the layout field to avoid race conditions
+          // Merge with existing layout to preserve positions of non-moved nodes
+          const newLayout = {
+            ...board.layout,
+            ...updates,
+          };
+
+          await client.service('boards').patch(board.board_id, {
+            layout: newLayout,
+          });
+
+          console.log('✓ Layout persisted:', Object.keys(updates).length, 'sessions');
+        } catch (error) {
+          console.error('Failed to persist layout:', error);
+        }
+      }, 500);
+    },
+    [board, client]
+  );
+
+  // Cleanup debounce timer on unmount
   useEffect(() => {
-    setNodes(initialNodes);
+    return () => {
+      if (layoutUpdateTimerRef.current) {
+        clearTimeout(layoutUpdateTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Sync nodes when sessions or tasks change (WebSocket updates)
+  // Prefer local positions over incoming WebSocket positions to avoid conflicts
+  useEffect(() => {
+    if (isDraggingRef.current) {
+      // Skip sync during drag operations
+      return;
+    }
+
+    setNodes(currentNodes => {
+      return initialNodes.map(newNode => {
+        // Check if we have a local position for this node
+        const localPosition = localPositionsRef.current[newNode.id];
+
+        // Check if the incoming position is different from our local cache
+        const incomingPosition = newNode.position;
+        const positionChanged =
+          localPosition &&
+          (Math.abs(localPosition.x - incomingPosition.x) > 1 ||
+            Math.abs(localPosition.y - incomingPosition.y) > 1);
+
+        if (positionChanged) {
+          // Another client moved this node - clear our local cache and use their position
+          delete localPositionsRef.current[newNode.id];
+          return newNode;
+        }
+
+        if (localPosition) {
+          // Use our local position (we moved it recently and no one else has)
+          return {
+            ...newNode,
+            position: localPosition,
+          };
+        }
+
+        // No local override - use the position from initialNodes (board.layout or auto-layout)
+        return newNode;
+      });
+    });
   }, [initialNodes, setNodes]);
 
   // Sync edges when sessions change (genealogy updates)
@@ -204,6 +329,9 @@ const SessionCanvas = ({
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeDragStart={handleNodeDragStart}
+        onNodeDrag={handleNodeDrag}
+        onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
         snapToGrid={true}
         snapGrid={[20, 20]}

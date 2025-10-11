@@ -23,6 +23,19 @@ export interface Board {
   /** Session IDs in this board */
   sessions: SessionID[];
 
+  /**
+   * Session positions on the board canvas
+   *
+   * Maps session_id -> {x, y} coordinates for React Flow
+   * Updated on drag events, isolated from other board operations
+   */
+  layout?: {
+    [sessionId: string]: {
+      x: number;
+      y: number;
+    };
+  };
+
   created_at: string;
   last_updated: string;
 

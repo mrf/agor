@@ -141,6 +141,8 @@ export const App: React.FC<AppProps> = ({
       />
       <Content style={{ position: 'relative', overflow: 'hidden' }}>
         <SessionCanvas
+          board={currentBoard || null}
+          client={client}
           sessions={boardSessions}
           tasks={tasks}
           users={users}

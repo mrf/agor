@@ -31,6 +31,7 @@ export class BoardRepository implements BaseRepository<Board, Partial<Board>> {
       sessions: string[];
       color?: string;
       icon?: string;
+      layout?: Record<string, { x: number; y: number }>;
     };
 
     return {
@@ -66,6 +67,7 @@ export class BoardRepository implements BaseRepository<Board, Partial<Board>> {
         sessions: board.sessions ?? [],
         color: board.color,
         icon: board.icon,
+        layout: board.layout,
       },
     };
   }
