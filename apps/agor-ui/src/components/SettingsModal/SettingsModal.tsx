@@ -1,3 +1,4 @@
+import type { Application } from '@agor/core/feathers';
 import type {
   Board,
   CreateMCPServerInput,
@@ -8,7 +9,6 @@ import type {
   UpdateUserInput,
   User,
 } from '@agor/core/types';
-import type { Application } from '@feathersjs/feathers';
 import { Modal, Tabs } from 'antd';
 import { BoardsTable } from './BoardsTable';
 import { ContextTable } from './ContextTable';

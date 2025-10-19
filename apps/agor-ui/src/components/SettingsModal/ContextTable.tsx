@@ -5,8 +5,8 @@
  * Uses reusable MarkdownFileCollection + MarkdownModal components
  */
 
+import type { Application } from '@agor/core/feathers';
 import type { ContextFileDetail, ContextFileListItem } from '@agor/core/types';
-import type { Application } from '@feathersjs/feathers';
 import { Alert } from 'antd';
 import { useEffect, useState } from 'react';
 import { MarkdownFileCollection } from '../MarkdownFileCollection/MarkdownFileCollection';
