@@ -14,9 +14,17 @@ interface SessionHeaderProps {
   session: Session;
   onClick?: () => void;
   showCounts?: boolean;
+  worktreeName?: string;
+  onWorktreeClick?: () => void;
 }
 
-const SessionHeader = ({ session, onClick, showCounts = true }: SessionHeaderProps) => {
+const SessionHeader = ({
+  session,
+  onClick,
+  showCounts = true,
+  worktreeName,
+  onWorktreeClick,
+}: SessionHeaderProps) => {
   const { token } = theme.useToken();
 
   const getStatusColor = () => {
@@ -115,6 +123,27 @@ const SessionHeader = ({ session, onClick, showCounts = true }: SessionHeaderPro
         >
           {session.title || session.description}
         </Text>
+      )}
+
+      {worktreeName && (
+        <Tag
+          icon={<BranchesOutlined />}
+          color="blue"
+          style={{
+            fontSize: 11,
+            padding: '0 8px',
+            lineHeight: '20px',
+            cursor: onWorktreeClick ? 'pointer' : 'default',
+          }}
+          onClick={e => {
+            if (onWorktreeClick) {
+              e.stopPropagation(); // Prevent session onClick from firing
+              onWorktreeClick();
+            }
+          }}
+        >
+          {worktreeName}
+        </Tag>
       )}
 
       {showCounts && (

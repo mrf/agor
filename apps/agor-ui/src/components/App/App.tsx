@@ -55,6 +55,7 @@ export interface AppProps {
   onCreateRepo?: (data: { url: string; slug: string }) => void;
   onDeleteRepo?: (repoId: string) => void;
   onDeleteWorktree?: (worktreeId: string) => void;
+  onUpdateWorktree?: (worktreeId: string, updates: Partial<Worktree>) => void;
   onCreateWorktree?: (
     repoId: string,
     data: { name: string; ref: string; createBranch: boolean }
@@ -96,6 +97,7 @@ export const App: React.FC<AppProps> = ({
   onCreateRepo,
   onDeleteRepo,
   onDeleteWorktree,
+  onUpdateWorktree,
   onCreateWorktree,
   onCreateUser,
   onUpdateUser,
@@ -261,9 +263,9 @@ export const App: React.FC<AppProps> = ({
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreate={handleCreateSession}
+        onOpenSettings={() => setSettingsOpen(true)}
         availableAgents={availableAgents}
         worktreeOptions={worktreeOptions}
-        repoOptions={repoOptions}
         mcpServers={mcpServers}
       />
       <SessionDrawer
@@ -300,6 +302,7 @@ export const App: React.FC<AppProps> = ({
         boards={boards}
         repos={repos}
         worktrees={worktrees}
+        sessions={sessions}
         users={users}
         mcpServers={mcpServers}
         onCreateBoard={onCreateBoard}
@@ -308,6 +311,7 @@ export const App: React.FC<AppProps> = ({
         onCreateRepo={onCreateRepo}
         onDeleteRepo={onDeleteRepo}
         onDeleteWorktree={onDeleteWorktree}
+        onUpdateWorktree={onUpdateWorktree}
         onCreateWorktree={onCreateWorktree}
         onCreateUser={onCreateUser}
         onUpdateUser={onUpdateUser}

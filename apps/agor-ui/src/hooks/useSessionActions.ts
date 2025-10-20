@@ -41,82 +41,68 @@ export function useSessionActions(client: AgorClient | null): UseSessionActionsR
       setCreating(true);
       setError(null);
 
-      // Parse worktree reference if using existing worktree
-      let repoSlug: string | undefined;
-      let worktreeName: string | undefined;
+      // Parse worktree reference (now always required)
+      // Format: "repo-slug:worktree-name" e.g., "agor:test-yo"
+      if (!config.worktreeRef) {
+        throw new Error('Worktree reference is required');
+      }
 
-      if (config.repoSetupMode === 'existing-worktree' && config.worktreeRef) {
-        // Format: "repo-slug:worktree-name" e.g., "agor:test-yo"
-        const parts = config.worktreeRef.split(':');
-        repoSlug = parts[0];
-        worktreeName = parts[1];
-      } else if (config.repoSetupMode === 'new-worktree') {
-        // Create new worktree on existing repo
-        repoSlug = config.existingRepoSlug;
-        worktreeName = config.newWorktreeName;
+      const parts = config.worktreeRef.split(':');
+      const repoSlug = parts[0];
+      const worktreeName = parts[1];
 
-        if (!repoSlug || !worktreeName) {
-          throw new Error('Repository and worktree name required for new worktree mode');
-        }
+      if (!repoSlug || !worktreeName) {
+        throw new Error('Invalid worktree reference format. Expected "repo-slug:worktree-name"');
+      }
 
-        // Find the repo ID from the slug
-        const repos = await client.service('repos').find({});
-        const repo = repos.find((r: Repo) => r.slug === repoSlug);
-        if (!repo) {
-          throw new Error(`Repository not found: ${repoSlug}`);
-        }
+      console.log(`Creating session with worktree: ${repoSlug}:${worktreeName}`);
 
-        // Determine branch name (use worktree name if checkbox is checked, otherwise use custom branch name)
-        const branchName = config.newWorktreeBranch || worktreeName;
+      // Find the repo by slug
+      const reposResponse = await client.service('repos').find({});
+      console.log('Repos response:', reposResponse);
 
-        console.log(
-          `Creating worktree: ${worktreeName} on branch: ${branchName} for repo: ${repoSlug} (${repo.repo_id})`
+      // Handle both array and paginated response formats
+      const repos = Array.isArray(reposResponse) ? reposResponse : reposResponse.data || [];
+      const repo = repos.find((r: Repo) => r.slug === repoSlug);
+      if (!repo) {
+        console.error(
+          'Available repos:',
+          repos.map((r: Repo) => r.slug)
         );
-
-        // Create the worktree via daemon
-        await client.service(`repos/${repo.repo_id}/worktrees`).create({
-          name: worktreeName,
-          ref: branchName,
-          createBranch: true, // Always create a new branch for new worktrees
-        });
-
-        console.log(`Worktree created successfully: ${worktreeName}`);
-      } else if (config.repoSetupMode === 'new-repo') {
-        repoSlug = config.repoSlug;
-        worktreeName = config.initialWorktreeName;
-        // TODO: Clone repo and create worktree via daemon before creating session
+        throw new Error(`Repository not found: ${repoSlug}`);
       }
 
-      // Determine the git ref (branch name) based on setup mode
-      let gitRef = 'main'; // Default fallback
-      if (config.repoSetupMode === 'new-worktree') {
-        // Use the branch name specified for the new worktree (or worktree name if checkbox was checked)
-        gitRef = config.newWorktreeBranch || config.newWorktreeName || 'main';
-      } else if (config.repoSetupMode === 'new-repo') {
-        gitRef = config.initialWorktreeBranch || 'main';
-      } else if (config.repoSetupMode === 'existing-worktree') {
-        // For existing worktrees, the ref should already be set by the daemon
-        // We'll use 'main' as default, but the daemon will override this with actual ref
-        gitRef = 'main';
+      console.log('Found repo:', repo.repo_id, repo.slug);
+
+      // Find the worktree by repo_id and name
+      const worktreesResponse = await client.service('worktrees').find({
+        query: { repo_id: repo.repo_id },
+      });
+      console.log('Worktrees response:', worktreesResponse);
+
+      // Handle both array and paginated response formats
+      const worktrees = Array.isArray(worktreesResponse)
+        ? worktreesResponse
+        : worktreesResponse.data || [];
+      const worktree = worktrees.find(w => w.name === worktreeName);
+      if (!worktree) {
+        console.error(
+          'Available worktrees:',
+          worktrees.map(w => w.name)
+        );
+        throw new Error(`Worktree not found: ${worktreeName} in repo ${repoSlug}`);
       }
 
-      // Create session with repo/worktree data
+      console.log(`Found worktree: ${worktree.worktree_id}`);
+
+      // Create session with worktree_id
       const agenticTool = config.agent as AgenticToolName;
       const newSession = await client.service('sessions').create({
         agentic_tool: agenticTool,
         status: 'idle' as const,
         title: config.title || undefined,
         description: config.initialPrompt || undefined,
-        repo: {
-          repo_slug: repoSlug,
-          worktree_name: worktreeName,
-          managed_worktree: !!worktreeName, // If we have a worktree name, it's managed
-        },
-        git_state: {
-          ref: gitRef,
-          base_sha: 'HEAD',
-          current_sha: 'HEAD',
-        },
+        worktree_id: worktree.worktree_id,
         model_config: config.modelConfig
           ? {
               ...config.modelConfig,
@@ -126,13 +112,6 @@ export function useSessionActions(client: AgorClient | null): UseSessionActionsR
         permission_config: {
           mode: config.permissionMode || getDefaultPermissionMode(agenticTool),
         },
-        contextFiles: [],
-        genealogy: {
-          children: [],
-        },
-        tasks: [],
-        message_count: 0,
-        tool_use_count: 0,
       } as Partial<Session>);
 
       return newSession;

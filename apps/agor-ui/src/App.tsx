@@ -465,6 +465,21 @@ function AppContent() {
     }
   };
 
+  const handleUpdateWorktree = async (
+    worktreeId: string,
+    updates: Partial<import('@agor/core/types').Worktree>
+  ) => {
+    if (!client) return;
+    try {
+      await client.service('worktrees').patch(worktreeId, updates);
+      message.success('Worktree updated successfully!');
+    } catch (error) {
+      message.error(
+        `Failed to update worktree: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  };
+
   const handleCreateWorktree = async (
     repoId: string,
     data: { name: string; ref: string; createBranch: boolean }
@@ -569,7 +584,7 @@ function AppContent() {
   };
 
   // Generate repo reference options for dropdowns
-  const allOptions = getRepoReferenceOptions(repos);
+  const allOptions = getRepoReferenceOptions(repos, worktrees);
   const worktreeOptions = allOptions.filter(opt => opt.type === 'managed-worktree');
   const repoOptions = allOptions.filter(opt => opt.type === 'managed');
 
@@ -602,6 +617,7 @@ function AppContent() {
       onCreateRepo={handleCreateRepo}
       onDeleteRepo={handleDeleteRepo}
       onDeleteWorktree={handleDeleteWorktree}
+      onUpdateWorktree={handleUpdateWorktree}
       onCreateWorktree={handleCreateWorktree}
       onCreateUser={handleCreateUser}
       onUpdateUser={handleUpdateUser}

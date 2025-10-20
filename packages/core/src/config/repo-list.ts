@@ -4,7 +4,7 @@
  * Generate flattened lists of repo references for UI selection
  */
 
-import type { Repo, RepoSlug, WorktreeName } from '../types';
+import type { Repo, RepoSlug, Worktree, WorktreeName } from '../types';
 
 /**
  * Repo reference option for UI selection
@@ -38,10 +38,11 @@ export interface RepoReferenceOption {
  * - User paths can be added manually
  *
  * @param repos - List of Agor-managed repositories
+ * @param worktrees - List of worktrees (optional, now fetched from worktrees table)
  * @returns Flattened list of selectable repo references
  *
  * @example
- * const options = getRepoReferenceOptions(repos);
+ * const options = getRepoReferenceOptions(repos, worktrees);
  * // [
  * //   { label: "anthropics/agor", value: "anthropics/agor", type: "managed", ... },
  * //   { label: "anthropics/agor:main", value: "anthropics/agor:main", type: "managed-worktree", ... },
@@ -50,8 +51,14 @@ export interface RepoReferenceOption {
  * //   { label: "apache/superset:main", value: "apache/superset:main", type: "managed-worktree", ... },
  * // ]
  */
-export function getRepoReferenceOptions(repos: Repo[]): RepoReferenceOption[] {
+export function getRepoReferenceOptions(
+  repos: Repo[],
+  worktrees: Worktree[] = []
+): RepoReferenceOption[] {
   const options: RepoReferenceOption[] = [];
+
+  // Create a map of repo_id to repo for fast lookups
+  const repoMap = new Map(repos.map(repo => [repo.repo_id, repo]));
 
   for (const repo of repos) {
     // Add bare repo option
@@ -62,10 +69,22 @@ export function getRepoReferenceOptions(repos: Repo[]): RepoReferenceOption[] {
       slug: repo.slug,
       description: `${repo.name} (bare repo)`,
     });
+  }
 
-    // TODO: Add worktree options (requires fetching from worktrees table)
-    // Worktrees are now first-class entities in their own table
-    // This will need to be updated to accept worktrees as a separate parameter
+  // Add worktree options
+  for (const worktree of worktrees) {
+    const repo = repoMap.get(worktree.repo_id);
+    if (!repo) continue; // Skip if repo not found
+
+    const reference = `${repo.slug}:${worktree.name}`;
+    options.push({
+      label: reference,
+      value: reference,
+      type: 'managed-worktree',
+      slug: repo.slug,
+      worktree: worktree.name,
+      description: `${repo.name} - ${worktree.name} (${worktree.ref})`,
+    });
   }
 
   return options;
@@ -77,10 +96,11 @@ export function getRepoReferenceOptions(repos: Repo[]): RepoReferenceOption[] {
  * Useful for hierarchical dropdowns/menus
  *
  * @param repos - List of Agor-managed repositories
+ * @param worktrees - List of worktrees (optional, now fetched from worktrees table)
  * @returns Map of repo slug to options
  *
  * @example
- * const grouped = getGroupedRepoReferenceOptions(repos);
+ * const grouped = getGroupedRepoReferenceOptions(repos, worktrees);
  * // {
  * //   "anthropics/agor": [
  * //     { label: "anthropics/agor", ... },
@@ -91,9 +111,13 @@ export function getRepoReferenceOptions(repos: Repo[]): RepoReferenceOption[] {
  * // }
  */
 export function getGroupedRepoReferenceOptions(
-  repos: Repo[]
+  repos: Repo[],
+  worktrees: Worktree[] = []
 ): Record<RepoSlug, RepoReferenceOption[]> {
   const grouped: Record<RepoSlug, RepoReferenceOption[]> = {};
+
+  // Create a map of repo_id to repo for fast lookups
+  const repoMap = new Map(repos.map(repo => [repo.repo_id, repo]));
 
   for (const repo of repos) {
     const options: RepoReferenceOption[] = [];
@@ -107,11 +131,27 @@ export function getGroupedRepoReferenceOptions(
       description: `${repo.name} (bare repo)`,
     });
 
-    // TODO: Add worktree options (requires fetching from worktrees table)
-    // Worktrees are now first-class entities in their own table
-    // This will need to be updated to accept worktrees as a separate parameter
-
     grouped[repo.slug] = options;
+  }
+
+  // Add worktree options to their respective repo groups
+  for (const worktree of worktrees) {
+    const repo = repoMap.get(worktree.repo_id);
+    if (!repo) continue; // Skip if repo not found
+
+    const reference = `${repo.slug}:${worktree.name}`;
+    if (!grouped[repo.slug]) {
+      grouped[repo.slug] = [];
+    }
+
+    grouped[repo.slug].push({
+      label: reference,
+      value: reference,
+      type: 'managed-worktree',
+      slug: repo.slug,
+      worktree: worktree.name,
+      description: `${repo.name} - ${worktree.name} (${worktree.ref})`,
+    });
   }
 
   return grouped;

@@ -5,12 +5,15 @@ import type {
   CreateUserInput,
   MCPServer,
   Repo,
+  Session,
   UpdateMCPServerInput,
   UpdateUserInput,
   User,
   Worktree,
 } from '@agor/core/types';
 import { Modal, Tabs } from 'antd';
+import { useState } from 'react';
+import { WorktreeModal } from '../WorktreeModal';
 import { BoardsTable } from './BoardsTable';
 import { ContextTable } from './ContextTable';
 import { MCPServersTable } from './MCPServersTable';
@@ -25,6 +28,7 @@ export interface SettingsModalProps {
   boards: Board[];
   repos: Repo[];
   worktrees: Worktree[];
+  sessions: Session[];
   users: User[];
   mcpServers: MCPServer[];
   onCreateBoard?: (board: Partial<Board>) => void;
@@ -33,6 +37,7 @@ export interface SettingsModalProps {
   onCreateRepo?: (data: { url: string; slug: string }) => void;
   onDeleteRepo?: (repoId: string) => void;
   onDeleteWorktree?: (worktreeId: string) => void;
+  onUpdateWorktree?: (worktreeId: string, updates: Partial<Worktree>) => void;
   onCreateWorktree?: (
     repoId: string,
     data: { name: string; ref: string; createBranch: boolean }
@@ -52,6 +57,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   boards,
   repos,
   worktrees,
+  sessions,
   users,
   mcpServers,
   onCreateBoard,
@@ -60,6 +66,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onCreateRepo,
   onDeleteRepo,
   onDeleteWorktree,
+  onUpdateWorktree,
   onCreateWorktree,
   onCreateUser,
   onUpdateUser,
@@ -68,6 +75,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUpdateMCPServer,
   onDeleteMCPServer,
 }) => {
+  const [selectedWorktree, setSelectedWorktree] = useState<Worktree | null>(null);
+  const [worktreeModalOpen, setWorktreeModalOpen] = useState(false);
+
+  const handleWorktreeRowClick = (worktree: Worktree) => {
+    setSelectedWorktree(worktree);
+    setWorktreeModalOpen(true);
+  };
+
+  const handleWorktreeModalClose = () => {
+    setWorktreeModalOpen(false);
+    setSelectedWorktree(null);
+  };
+
+  // Get repo for selected worktree
+  const selectedRepo = selectedWorktree
+    ? repos.find(r => r.repo_id === selectedWorktree.repo_id) || null
+    : null;
+
+  // Get sessions for selected worktree
+  const worktreeSessions = selectedWorktree
+    ? sessions.filter(s => s.worktree_id === selectedWorktree.worktree_id)
+    : [];
   return (
     <Modal
       title="Settings"
@@ -108,6 +137,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 repos={repos}
                 onDelete={onDeleteWorktree}
                 onCreate={onCreateWorktree}
+                onRowClick={handleWorktreeRowClick}
               />
             ),
           },
@@ -141,6 +171,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             ),
           },
         ]}
+      />
+      <WorktreeModal
+        open={worktreeModalOpen}
+        onClose={handleWorktreeModalClose}
+        worktree={selectedWorktree}
+        repo={selectedRepo}
+        sessions={worktreeSessions}
+        client={client}
+        onUpdate={onUpdateWorktree}
+        onDelete={onDeleteWorktree}
+        onOpenSettings={onClose} // Close worktree modal and keep settings modal open
       />
     </Modal>
   );

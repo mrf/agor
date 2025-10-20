@@ -1,5 +1,11 @@
 import type { Repo, Worktree } from '@agor/core/types';
-import { BranchesOutlined, DeleteOutlined, FolderOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  BranchesOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  FolderOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 import {
   Button,
   Checkbox,
@@ -23,6 +29,7 @@ interface WorktreesTableProps {
   repos: Repo[];
   onDelete?: (worktreeId: string) => void;
   onCreate?: (repoId: string, data: { name: string; ref: string; createBranch: boolean }) => void;
+  onRowClick?: (worktree: Worktree) => void;
 }
 
 export const WorktreesTable: React.FC<WorktreesTableProps> = ({
@@ -30,6 +37,7 @@ export const WorktreesTable: React.FC<WorktreesTableProps> = ({
   repos,
   onDelete,
   onCreate,
+  onRowClick,
 }) => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [form] = Form.useForm();
@@ -137,27 +145,44 @@ export const WorktreesTable: React.FC<WorktreesTableProps> = ({
     {
       title: 'Actions',
       key: 'actions',
-      width: 80,
+      width: 100,
       render: (_: unknown, record: Worktree) => (
-        <Popconfirm
-          title="Delete worktree?"
-          description={
-            <>
-              <p>Are you sure you want to delete worktree "{record.name}"?</p>
-              {record.sessions.length > 0 && (
-                <p style={{ color: '#ff4d4f' }}>
-                  ⚠️ {record.sessions.length} session(s) reference this worktree.
-                </p>
-              )}
-            </>
-          }
-          onConfirm={() => handleDelete(record.worktree_id)}
-          okText="Delete"
-          cancelText="Cancel"
-          okButtonProps={{ danger: true }}
-        >
-          <Button type="text" size="small" icon={<DeleteOutlined />} danger />
-        </Popconfirm>
+        <Space size="small">
+          <Button
+            type="text"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={e => {
+              e.stopPropagation();
+              onRowClick?.(record);
+            }}
+          />
+          <Popconfirm
+            title="Delete worktree?"
+            description={
+              <>
+                <p>Are you sure you want to delete worktree "{record.name}"?</p>
+                {record.sessions.length > 0 && (
+                  <p style={{ color: '#ff4d4f' }}>
+                    ⚠️ {record.sessions.length} session(s) reference this worktree.
+                  </p>
+                )}
+              </>
+            }
+            onConfirm={() => handleDelete(record.worktree_id)}
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={<DeleteOutlined />}
+              danger
+              onClick={e => e.stopPropagation()}
+            />
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -203,6 +228,10 @@ export const WorktreesTable: React.FC<WorktreesTableProps> = ({
           rowKey="worktree_id"
           pagination={{ pageSize: 10 }}
           size="small"
+          onRow={record => ({
+            onClick: () => onRowClick?.(record),
+            style: { cursor: onRowClick ? 'pointer' : 'default' },
+          })}
         />
       )}
 

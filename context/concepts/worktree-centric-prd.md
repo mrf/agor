@@ -1,8 +1,8 @@
 # Worktree-Centric Architecture: PRD
 
-**Status:** 🚧 In Progress (Phase 0 Complete, Phase 1 Basic CRUD Complete)
+**Status:** 🚧 In Progress (Phase 0 Complete, Phase 1 Complete, Integration Work)
 **Created:** 2025-01-19
-**Last Updated:** 2025-01-20
+**Last Updated:** 2025-10-20
 **Author:** Claude Code (with Max)
 **Epic:** Worktree-First Design + Data Model Normalization
 
@@ -19,16 +19,41 @@
 - ✅ Git operations fully working (bare repos, SSH auth)
 - ✅ Docker environment with SSH key mounting
 
-**Phase 1 (Worktree CRUD):** ✅ **BASIC CRUD COMPLETE**
+**Phase 1 (Worktree CRUD):** ✅ **COMPLETE**
 
 - ✅ Settings → Worktrees tab with full table view
 - ✅ Create Worktree modal (session-inspired UX)
 - ✅ Real-time WebSocket updates (no refresh needed)
 - ✅ Delete functionality with session warnings
 - ✅ Git worktree creation with branch management
-- ⏳ WorktreeModal component (5 tabs) - NOT YET STARTED
+- ✅ WorktreeModal component (5 tabs) - COMPLETE
+  - ✅ General tab (metadata, issue/PR, notes, sessions)
+  - ✅ Environment tab (config display, read-only)
+  - ✅ Concepts tab (placeholder for file listing)
+  - ✅ Sessions tab (active/past session list)
+  - ✅ Repo tab (link to repo settings)
+- ✅ Clickable worktree badges in SessionHeader
+- ✅ Row click in WorktreesTable opens modal
 
-**Next Up:** WorktreeModal (5 tabs), then Environment Execution (Phase 2)
+**Phase 1.5 (Session-Worktree Integration):** 🚧 **IN PROGRESS**
+
+- ✅ Session creation requires worktree selection
+  - ✅ Simplified NewSessionModal (removed complex repo modes)
+  - ✅ Worktree dropdown populated with all worktrees
+  - ✅ Empty state with "Go to Settings" button when no worktrees exist
+  - ✅ Updated `getRepoReferenceOptions()` to accept worktrees parameter
+- ✅ Sessions store `worktree_id` instead of nested repo object
+  - ✅ Updated session creation flow to lookup worktree by reference
+  - ✅ Sessions service hook populates `repo.cwd` from worktree automatically
+- 🚧 Docker environment includes agent CLIs
+  - ✅ Claude Code CLI installed globally in container
+  - ✅ Gemini CLI added to Dockerfile
+  - ⏳ Testing agent execution in worktree directories
+- ⏳ Sessions run in correct worktree directory
+  - ✅ Hook implemented to populate repo.cwd from worktree.path
+  - ⏳ Verifying agent execution picks up the correct cwd
+
+**Next Up:** Complete Phase 1.5 integration, then Environment Execution (Phase 2)
 
 ---
 
@@ -1044,11 +1069,11 @@ export function TerminalModal({ worktreeId, onClose }) {
 
 ---
 
-### Phase 1: Worktree CRUD & Modal UI (~1 week) ✅ **BASIC CRUD COMPLETE**
+### Phase 1: Worktree CRUD & Modal UI (~1 week) ✅ **COMPLETE**
 
 **Goal:** Build worktree-centric UI with full CRUD operations
 
-**Status:** ✅ Basic CRUD Complete | ⏳ Modal UI Not Started
+**Status:** ✅ Complete (2025-01-20)
 
 **Completed Tasks:**
 
@@ -1087,24 +1112,26 @@ export function TerminalModal({ worktreeId, onClose }) {
    - ReposService.createWorktree uses WorktreesService
    - WebSocket events properly broadcast
 
-**Remaining Tasks:**
+**Completed Tasks (2025-01-20):**
 
-7. ⏳ **Create WorktreeModal component**
-   - General tab (metadata, issue/PR, notes, sessions)
-   - Environment tab (show config read-only, edit variables)
-   - Concepts tab (list markdown files)
-   - Sessions tab (list active/past sessions)
-   - Repo tab (link to repo settings)
+7. ✅ **Create WorktreeModal component**
+   - General tab (metadata, issue/PR, notes, sessions) - Full edit functionality
+   - Environment tab (show config read-only) - Phase 2 will add start/stop
+   - Concepts tab (placeholder UI) - Backend service pending
+   - Sessions tab (list active/past sessions) - Full list with actions
+   - Repo tab (link to repo settings) - Complete
 
-8. ⏳ **Update WorktreesTable**
-   - Click row → Open WorktreeModal
+8. ✅ **Update WorktreesTable**
+   - Click row → Open WorktreeModal ✅
 
-9. ⏳ **Update SessionHeader**
-   - Make "Worktree: feat-auth" clickable → Opens WorktreeModal
+9. ✅ **Update SessionHeader**
+   - Added worktree badge with click handler ✅
+   - Badge shows worktree name
+   - Click opens WorktreeModal
 
-10. ⏳ **Backend services**
-    - WorktreeConceptsService (list markdown files from worktree path)
-    - Worktrees already support: issue_url, pr_url, notes, environment_instance
+10. ⏳ **Backend services (deferred to later phases)**
+    - WorktreeConceptsService (list markdown files) - Phase 1 complete, backend TBD
+    - Worktrees already support: issue_url, pr_url, notes, environment_instance ✅
 
 **Acceptance Criteria:**
 
@@ -1113,10 +1140,10 @@ export function TerminalModal({ worktreeId, onClose }) {
 - ✅ Can delete worktrees with warnings
 - ✅ Git operations fully functional
 - ✅ Docker environment working
-- ⏳ Can open Worktree Modal from multiple places
-- ⏳ All 5 tabs render correctly
-- ⏳ Can edit issue_url, pr_url, notes
-- ⏳ Can browse concept files
+- ✅ Can open Worktree Modal from multiple places (WorktreesTable, SessionHeader)
+- ✅ All 5 tabs render correctly
+- ✅ Can edit issue_url, pr_url, notes (inline editing in General tab)
+- ⏳ Can browse concept files (UI complete, backend service pending)
 
 ---
 
