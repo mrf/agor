@@ -49,12 +49,11 @@ export class TaskRepository implements BaseRepository<Task, Partial<Task>> {
       throw new RepositoryError('session_id is required when creating a task');
     }
 
-    // Ensure git_state always has required fields (backward compatible)
-    const git_state = task.git_state ?? { sha_at_start: '' };
-    if (!git_state.ref_at_start && git_state.ref_at_start !== undefined) {
-      // Ensure ref_at_start exists even if empty (for backward compatibility)
-      git_state.ref_at_start = undefined;
-    }
+    // Ensure git_state always has required fields
+    const git_state = task.git_state ?? {
+      ref_at_start: 'unknown',
+      sha_at_start: 'unknown',
+    };
 
     return {
       task_id: taskId,

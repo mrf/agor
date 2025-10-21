@@ -748,7 +748,7 @@ async function main() {
       // Get current git state from session's working directory
       const { getGitState, getCurrentBranch } = await import('@agor/core/git');
       let gitStateAtStart = 'unknown';
-      let refAtStart: string | undefined;
+      let refAtStart = 'unknown'; // Default to 'unknown' if we can't get branch
       if (session.worktree_id) {
         try {
           const worktreesService = app.service('worktrees');
@@ -775,7 +775,7 @@ async function main() {
           },
           tool_use_count: 0, // Will be updated after assistant message
           git_state: {
-            ref_at_start: refAtStart,
+            ref_at_start: refAtStart, // Now always a string (never undefined)
             sha_at_start: gitStateAtStart,
           },
         },

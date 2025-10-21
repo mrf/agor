@@ -45,10 +45,10 @@ export interface Task {
 
   // Git state
   git_state: {
-    ref_at_start?: string; // Branch name at task start
-    sha_at_start: string;
-    sha_at_end?: string;
-    commit_message?: string;
+    ref_at_start: string; // Branch name at task start (required)
+    sha_at_start: string; // SHA at task start (required)
+    sha_at_end?: string; // SHA at task end (optional)
+    commit_message?: string; // Commit message if task resulted in a commit (optional)
   };
 
   // Model (resolved model ID used for this task, e.g., "claude-sonnet-4-5-20250929")
