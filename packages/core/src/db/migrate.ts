@@ -116,7 +116,7 @@ async function createInitialSchema(db: Database): Promise<void> {
         session_id TEXT NOT NULL,
         created_at INTEGER NOT NULL,
         completed_at INTEGER,
-        status TEXT NOT NULL CHECK(status IN ('created', 'running', 'completed', 'failed')),
+        status TEXT NOT NULL CHECK(status IN ('created', 'running', 'stopping', 'awaiting_permission', 'completed', 'failed', 'stopped')),
         created_by TEXT NOT NULL DEFAULT 'anonymous',
         data TEXT NOT NULL,
         FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
