@@ -51,8 +51,6 @@ export const SessionSettingsModal: React.FC<SessionSettingsModalProps> = ({
         mcpServerIds: sessionMcpServerIds,
         modelConfig: session.model_config,
         permissionMode: session.permission_config?.mode || defaultPermissionMode,
-        issue_url: session.issue_url || '',
-        pull_request_url: session.pull_request_url || '',
         custom_context: session.custom_context
           ? JSON.stringify(session.custom_context, null, 2)
           : '',
@@ -65,8 +63,6 @@ export const SessionSettingsModal: React.FC<SessionSettingsModalProps> = ({
     sessionMcpServerIds,
     session.model_config,
     session.permission_config?.mode,
-    session.issue_url,
-    session.pull_request_url,
     session.custom_context,
     form,
   ]);
@@ -95,14 +91,6 @@ export const SessionSettingsModal: React.FC<SessionSettingsModalProps> = ({
           ...session.permission_config,
           mode: values.permissionMode,
         };
-      }
-
-      // Update URLs
-      if (values.issue_url !== session.issue_url) {
-        updates.issue_url = values.issue_url || undefined;
-      }
-      if (values.pull_request_url !== session.pull_request_url) {
-        updates.pull_request_url = values.pull_request_url || undefined;
       }
 
       // Update custom context (parse JSON)
@@ -163,8 +151,6 @@ export const SessionSettingsModal: React.FC<SessionSettingsModalProps> = ({
           permissionMode:
             session.permission_config?.mode ||
             (session.agentic_tool === 'codex' ? 'auto' : 'acceptEdits'),
-          issue_url: session.issue_url || '',
-          pull_request_url: session.pull_request_url || '',
           custom_context: session.custom_context
             ? JSON.stringify(session.custom_context, null, 2)
             : '',

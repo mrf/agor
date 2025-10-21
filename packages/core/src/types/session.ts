@@ -130,12 +130,6 @@ export interface Session {
     notes?: string;
   };
 
-  // External references
-  /** GitHub issue URL or issue tracker URL */
-  issue_url?: string;
-  /** Pull request URL */
-  pull_request_url?: string;
-
   // Custom context for Handlebars templates
   /**
    * User-defined JSON context for Handlebars templates in zone triggers

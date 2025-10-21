@@ -277,6 +277,7 @@ export const App: React.FC<AppProps> = ({
           sessions={boardSessions}
           tasks={tasks}
           users={users}
+          worktrees={worktrees}
           currentUserId={user?.user_id}
           mcpServers={mcpServers}
           sessionMcpServerIds={sessionMcpServerIds}
@@ -388,10 +389,10 @@ export const App: React.FC<AppProps> = ({
           setSettingsOpen(true);
         }}
       />
-      {/* biome-ignore lint/suspicious/noExplicitAny: AgorClient vs Application type incompatibility */}
       <TerminalModal
         open={terminalOpen}
         onClose={() => setTerminalOpen(false)}
+        // biome-ignore lint/suspicious/noExplicitAny: AgorClient vs Application type incompatibility
         client={client as any}
       />
     </Layout>

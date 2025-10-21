@@ -36,6 +36,7 @@ interface SessionCanvasProps {
   sessions: Session[];
   tasks: Record<string, Task[]>;
   users: User[];
+  worktrees: import('@agor/core/types').Worktree[];
   currentUserId?: string;
   mcpServers?: MCPServer[];
   sessionMcpServerIds?: Record<string, string[]>; // Map sessionId -> mcpServerIds[]
@@ -98,6 +99,7 @@ const SessionCanvas = ({
   board,
   client,
   sessions,
+  worktrees,
   tasks,
   users,
   currentUserId,
@@ -1018,11 +1020,12 @@ const SessionCanvas = ({
 
           if (session) {
             try {
+              // Lookup worktree data for this session
+              const worktree = worktrees.find(wt => wt.worktree_id === session.worktree_id);
+
               const context = {
                 session: {
                   description: session.description || '',
-                  issue_url: session.issue_url || '',
-                  pull_request_url: session.pull_request_url || '',
                   context: session.custom_context || {},
                 },
                 board: {
@@ -1030,6 +1033,25 @@ const SessionCanvas = ({
                   description: board?.description || '',
                   context: board?.custom_context || {},
                 },
+                worktree: worktree
+                  ? {
+                      name: worktree.name || '',
+                      ref: worktree.ref || '',
+                      issue_url: worktree.issue_url || '',
+                      pull_request_url: worktree.pull_request_url || '',
+                      notes: worktree.notes || '',
+                      path: worktree.path || '',
+                      context: worktree.custom_context || {},
+                    }
+                  : {
+                      name: '',
+                      ref: '',
+                      issue_url: '',
+                      pull_request_url: '',
+                      notes: '',
+                      path: '',
+                      context: {},
+                    },
               };
               const template = Handlebars.compile(triggerModal.trigger.text);
               renderedPromptPreview = template(context);
@@ -1063,12 +1085,13 @@ const SessionCanvas = ({
                     return;
                   }
 
-                  // Build Handlebars context from session and board data
+                  // Lookup worktree data for this session
+                  const worktree = worktrees.find(wt => wt.worktree_id === session.worktree_id);
+
+                  // Build Handlebars context from session, board, and worktree data
                   const context = {
                     session: {
                       description: session.description || '',
-                      issue_url: session.issue_url || '',
-                      pull_request_url: session.pull_request_url || '',
                       // User-defined custom context
                       context: session.custom_context || {},
                     },
@@ -1077,6 +1100,25 @@ const SessionCanvas = ({
                       description: board?.description || '',
                       context: board?.custom_context || {},
                     },
+                    worktree: worktree
+                      ? {
+                          name: worktree.name || '',
+                          ref: worktree.ref || '',
+                          issue_url: worktree.issue_url || '',
+                          pull_request_url: worktree.pull_request_url || '',
+                          notes: worktree.notes || '',
+                          path: worktree.path || '',
+                          context: worktree.custom_context || {},
+                        }
+                      : {
+                          name: '',
+                          ref: '',
+                          issue_url: '',
+                          pull_request_url: '',
+                          notes: '',
+                          path: '',
+                          context: {},
+                        },
                   };
 
                   // Render template with Handlebars

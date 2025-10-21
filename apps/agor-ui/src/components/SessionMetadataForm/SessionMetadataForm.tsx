@@ -3,11 +3,12 @@
  *
  * Reusable form section for session metadata fields:
  * - Title
- * - Issue URL
- * - Pull Request URL
  * - Custom Context (JSON)
  *
  * Used in both NewSessionModal and SessionSettingsModal
+ *
+ * Note: Issue URL and Pull Request URL have been moved to the Worktree entity.
+ * These are now managed in the WorktreeModal instead.
  */
 
 import { Form, Input } from 'antd';
@@ -27,8 +28,6 @@ export interface SessionMetadataFormProps {
  *
  * Expects to be used within a Form context with these field names:
  * - title
- * - issue_url
- * - pull_request_url
  * - custom_context
  */
 export const SessionMetadataForm: React.FC<SessionMetadataFormProps> = ({
@@ -47,24 +46,6 @@ export const SessionMetadataForm: React.FC<SessionMetadataFormProps> = ({
         }
       >
         <Input placeholder="e.g., Auth System Implementation" />
-      </Form.Item>
-
-      <Form.Item
-        name="issue_url"
-        label="Issue URL"
-        rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
-        help={showHelpText ? 'Link to related GitHub/GitLab issue' : undefined}
-      >
-        <Input placeholder="https://github.com/org/repo/issues/123" />
-      </Form.Item>
-
-      <Form.Item
-        name="pull_request_url"
-        label="Pull Request URL"
-        rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
-        help={showHelpText ? 'Link to related pull request' : undefined}
-      >
-        <Input placeholder="https://github.com/org/repo/pull/456" />
       </Form.Item>
 
       <Form.Item

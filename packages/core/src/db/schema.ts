@@ -79,10 +79,6 @@ export const sessions = sqliteTable(
           notes?: string;
         };
 
-        // External references
-        issue_url?: string;
-        pull_request_url?: string;
-
         // Custom context for Handlebars templates
         custom_context?: Record<string, unknown>;
       }>()

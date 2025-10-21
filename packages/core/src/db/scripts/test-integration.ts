@@ -146,6 +146,7 @@ async function testTaskRepository(db: ReturnType<typeof createDatabase>, session
       start_timestamp: new Date().toISOString(),
     },
     git_state: {
+      ref_at_start: 'main',
       sha_at_start: 'abc123',
     },
     model: 'claude-sonnet-4-5',
