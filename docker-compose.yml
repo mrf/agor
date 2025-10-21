@@ -25,6 +25,8 @@ services:
     volumes:
       # Mount entire repo for hot-reload
       - .:/app
+      # Exclude node_modules to prevent platform mismatch
+      - /app/node_modules
       # Persist database/config (unique per project name)
       - agor-data:/root/.agor
       # Mount SSH keys for git authentication (dev only)
