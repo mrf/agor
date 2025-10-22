@@ -7,7 +7,14 @@
 
 import type { MessageID, SessionID, TaskID } from './id';
 
-export type MessageRole = 'user' | 'assistant' | 'system';
+/**
+ * Message role - who is speaking
+ */
+export enum MessageRole {
+  USER = 'user',
+  ASSISTANT = 'assistant',
+  SYSTEM = 'system',
+}
 
 /**
  * Message type (from Claude transcript)

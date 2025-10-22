@@ -11,6 +11,7 @@
 
 import {
   type Message,
+  MessageRole,
   type PermissionRequestContent,
   type PermissionScope,
   PermissionStatus,
@@ -78,13 +79,13 @@ interface TaskBlockProps {
 function isAgentChainMessage(message: Message): boolean {
   // EXCEPTION: User messages with ONLY tool_result blocks are part of agent execution
   // (tool results are technically "user" role per Anthropic API, but they're automated responses)
-  if (message.role === 'user' && Array.isArray(message.content)) {
+  if (message.role === MessageRole.USER && Array.isArray(message.content)) {
     const hasOnlyToolResults = message.content.every(block => block.type === 'tool_result');
     if (hasOnlyToolResults) return true; // Part of agent chain, don't break it
   }
 
   // Only assistant messages beyond this point
-  if (message.role !== 'assistant') return false;
+  if (message.role !== MessageRole.ASSISTANT) return false;
 
   // String content - this is user-facing response, NOT agent chain
   if (typeof message.content === 'string') {

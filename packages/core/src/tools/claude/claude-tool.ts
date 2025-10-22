@@ -18,8 +18,14 @@ import type { SessionRepository } from '../../db/repositories/sessions';
 import type { WorktreeRepository } from '../../db/repositories/worktrees';
 import { generateId } from '../../lib/ids';
 import type { PermissionService } from '../../permissions/permission-service';
-import type { Message, MessageID, SessionID, TaskID } from '../../types';
-import { TaskStatus } from '../../types';
+import {
+  type Message,
+  type MessageID,
+  MessageRole,
+  type SessionID,
+  type TaskID,
+  TaskStatus,
+} from '../../types';
 import type { ImportOptions, ITool, SessionData, ToolCapabilities } from '../base';
 import { loadClaudeSession } from './import/load-session';
 import { transcriptsToMessages } from './import/message-converter';
@@ -239,7 +245,7 @@ export class ClaudeTool implements ITool {
             streamingCallbacks.onStreamStart(currentMessageId, {
               session_id: sessionId,
               task_id: taskId,
-              role: 'assistant',
+              role: MessageRole.ASSISTANT,
               timestamp: new Date().toISOString(),
             });
           }
@@ -253,7 +259,12 @@ export class ClaudeTool implements ITool {
       // Handle complete message (save to database)
       else if (event.type === 'complete' && event.content) {
         // End streaming if active (only for assistant messages)
-        if (currentMessageId && streamingCallbacks && ('role' in event && event.role === 'assistant')) {
+        if (
+          currentMessageId &&
+          streamingCallbacks &&
+          'role' in event &&
+          event.role === 'assistant'
+        ) {
           const streamEndTime = Date.now();
           streamingCallbacks.onStreamEnd(currentMessageId);
           const totalTime = streamEndTime - streamStartTime;
@@ -319,7 +330,7 @@ export class ClaudeTool implements ITool {
       message_id: generateId() as MessageID,
       session_id: sessionId,
       type: 'user',
-      role: 'user',
+      role: MessageRole.USER,
       index: nextIndex,
       timestamp: new Date().toISOString(),
       content_preview: prompt.substring(0, 200),
@@ -355,7 +366,8 @@ export class ClaudeTool implements ITool {
         contentPreview = block.text.substring(0, 200);
         break;
       } else if (block.type === 'tool_result' && block.content) {
-        const resultText = typeof block.content === 'string' ? block.content : JSON.stringify(block.content);
+        const resultText =
+          typeof block.content === 'string' ? block.content : JSON.stringify(block.content);
         contentPreview = `Tool result: ${resultText.substring(0, 180)}`;
         break;
       }
@@ -365,7 +377,7 @@ export class ClaudeTool implements ITool {
       message_id: messageId,
       session_id: sessionId,
       type: 'user',
-      role: 'user',
+      role: MessageRole.USER,
       index: nextIndex,
       timestamp: new Date().toISOString(),
       content_preview: contentPreview,
@@ -426,7 +438,7 @@ export class ClaudeTool implements ITool {
       message_id: messageId,
       session_id: sessionId,
       type: 'assistant',
-      role: 'assistant',
+      role: MessageRole.ASSISTANT,
       index: nextIndex,
       timestamp: new Date().toISOString(),
       content_preview: contentPreview,

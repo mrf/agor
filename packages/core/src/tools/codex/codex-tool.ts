@@ -11,7 +11,14 @@ import { execSync } from 'node:child_process';
 import type { MessagesRepository } from '../../db/repositories/messages';
 import type { SessionRepository } from '../../db/repositories/sessions';
 import { generateId } from '../../lib/ids';
-import type { Message, MessageID, PermissionMode, SessionID, TaskID } from '../../types';
+import {
+  type Message,
+  type MessageID,
+  MessageRole,
+  type PermissionMode,
+  type SessionID,
+  type TaskID,
+} from '../../types';
 import type { ITool, StreamingCallbacks, ToolCapabilities } from '../base';
 import type { MessagesService, TasksService } from '../claude/claude-tool';
 import { DEFAULT_CODEX_MODEL } from './models';
@@ -135,7 +142,7 @@ export class CodexTool implements ITool {
             streamingCallbacks.onStreamStart(currentMessageId, {
               session_id: sessionId,
               task_id: taskId,
-              role: 'assistant',
+              role: MessageRole.ASSISTANT,
               timestamp: new Date().toISOString(),
             });
           }
@@ -255,7 +262,7 @@ export class CodexTool implements ITool {
       message_id: generateId() as MessageID,
       session_id: sessionId,
       type: 'user',
-      role: 'user',
+      role: MessageRole.USER,
       index: nextIndex,
       timestamp: new Date().toISOString(),
       content_preview: prompt.substring(0, 200),
@@ -308,7 +315,7 @@ export class CodexTool implements ITool {
       message_id: messageId,
       session_id: sessionId,
       type: 'assistant',
-      role: 'assistant',
+      role: MessageRole.ASSISTANT,
       index: nextIndex,
       timestamp: new Date().toISOString(),
       content_preview: contentPreview,

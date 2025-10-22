@@ -22,7 +22,7 @@ export class MessagesRepository {
       session_id: row.session_id as UUID,
       task_id: row.task_id ? (row.task_id as UUID) : undefined,
       type: row.type,
-      role: row.role,
+      role: row.role as Message['role'],
       index: row.index,
       timestamp: new Date(row.timestamp).toISOString(),
       content_preview: row.content_preview || '',
