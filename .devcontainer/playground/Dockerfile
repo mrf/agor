@@ -20,8 +20,14 @@ COPY . .
 RUN echo "=== Starting pnpm install ===" && \
     pnpm install && \
     echo "=== Install complete, starting build ===" && \
-    pnpm --filter '!agor-ui' -r build && \
-    echo "=== Build complete ==="
+    echo "=== Building @agor/core first (required by other packages) ===" && \
+    pnpm --filter @agor/core build && \
+    echo "=== Building remaining packages ===" && \
+    pnpm --filter '!agor-ui' --filter '!@agor/core' -r build && \
+    echo "=== Build complete ===" && \
+    echo "=== Verifying core dist exists ===" && \
+    ls -la /build/packages/core/dist/ && \
+    echo "=== Core build verified ==="
 
 # Production stage
 FROM mcr.microsoft.com/devcontainers/typescript-node:20

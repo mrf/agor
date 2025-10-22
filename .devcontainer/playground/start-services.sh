@@ -15,6 +15,15 @@ if [ ! -d "node_modules" ]; then
   echo ""
 fi
 
+# Verify core package is built
+if [ ! -d "/workspaces/agor/packages/core/dist" ]; then
+  echo "⚠️  Core package not built - building now..."
+  cd /workspaces/agor/packages/core
+  pnpm build
+  echo "✅ Core package built"
+  echo ""
+fi
+
 # Check if this is first run
 if [ ! -d ~/.agor ]; then
   echo "📦 First run - initializing Agor..."
