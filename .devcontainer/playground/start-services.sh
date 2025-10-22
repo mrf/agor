@@ -54,30 +54,11 @@ if [ ! -d ~/.agor ]; then
   echo ""
 fi
 
-# Start daemon in background (build first if needed)
+# Start daemon in background using tsx (simpler, avoids ESM module resolution issues)
 cd /workspaces/agor/apps/agor-daemon
-
-# Check if daemon is built
-if [ ! -f "dist/index.js" ]; then
-  echo "⚠️  Daemon not built - building now..."
-  pnpm build
-
-  if [ ! -f "dist/index.js" ]; then
-    echo "❌ Daemon build failed! Using tsx instead..."
-    echo "🔧 Starting daemon on :3030 (dev mode)..."
-    pnpm dev:daemon-only > /tmp/agor-daemon.log 2>&1 &
-    DAEMON_PID=$!
-  else
-    echo "✅ Daemon built"
-    echo "🔧 Starting daemon on :3030..."
-    pnpm start > /tmp/agor-daemon.log 2>&1 &
-    DAEMON_PID=$!
-  fi
-else
-  echo "🔧 Starting daemon on :3030..."
-  pnpm start > /tmp/agor-daemon.log 2>&1 &
-  DAEMON_PID=$!
-fi
+echo "🔧 Starting daemon on :3030 (tsx)..."
+tsx src/index.ts > /tmp/agor-daemon.log 2>&1 &
+DAEMON_PID=$!
 
 # Wait for daemon to be ready
 echo -n "   Waiting for daemon"
