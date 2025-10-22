@@ -1373,7 +1373,7 @@ async function main() {
     }
   }
 
-  // Find all running sessions
+  // Find all running sessions (should be stopped when daemon restarts)
   const orphanedSessionsResult = (await sessionsService.find({
     query: {
       status: SessionStatus.RUNNING,
@@ -1383,12 +1383,35 @@ async function main() {
   const orphanedSessions = orphanedSessionsResult.data;
 
   if (orphanedSessions.length > 0) {
-    console.log(`   Found ${orphanedSessions.length} orphaned session(s)`);
+    console.log(`   Found ${orphanedSessions.length} orphaned session(s) with RUNNING status`);
     for (const session of orphanedSessions) {
       await sessionsService.patch(session.session_id, {
         status: SessionStatus.IDLE,
       });
-      console.log(`   ✓ Marked session ${session.session_id} as idle (was: running)`);
+      console.log(
+        `   ✓ Marked session ${session.session_id.substring(0, 8)} as idle (was: ${session.status})`
+      );
+    }
+  }
+
+  // Also check for sessions that had orphaned tasks (even if session status wasn't RUNNING)
+  // This handles cases where task was stuck but session status wasn't updated
+  const sessionIdsWithOrphanedTasks = new Set(orphanedTasks.map(t => t.session_id));
+  if (sessionIdsWithOrphanedTasks.size > 0) {
+    console.log(
+      `   Checking ${sessionIdsWithOrphanedTasks.size} session(s) with orphaned tasks...`
+    );
+    for (const sessionId of sessionIdsWithOrphanedTasks) {
+      const session = await sessionsService.get(sessionId);
+      // If session is still marked as RUNNING after orphaned task cleanup, set to IDLE
+      if (session.status === SessionStatus.RUNNING) {
+        await sessionsService.patch(sessionId, {
+          status: SessionStatus.IDLE,
+        });
+        console.log(
+          `   ✓ Marked session ${sessionId.substring(0, 8)} as idle (had orphaned tasks)`
+        );
+      }
     }
   }
 
