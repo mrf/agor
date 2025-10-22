@@ -51,7 +51,6 @@ export const WorktreeModal: React.FC<WorktreeModalProps> = ({
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
-        style={{ padding: '0 24px' }}
         items={[
           {
             key: 'general',

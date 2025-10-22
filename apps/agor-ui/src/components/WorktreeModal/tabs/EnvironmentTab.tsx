@@ -316,7 +316,7 @@ export const EnvironmentTab: React.FC<EnvironmentTabProps> = ({
   };
 
   return (
-    <div style={{ width: '100%', padding: '0 24px', maxHeight: '70vh', overflowY: 'auto' }}>
+    <div style={{ width: '100%', maxHeight: '70vh', overflowY: 'auto' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* ========== REPOSITORY TEMPLATE (Top Level) ========== */}
         <Card
