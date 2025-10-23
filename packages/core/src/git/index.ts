@@ -266,15 +266,41 @@ export async function createWorktree(
 ): Promise<void> {
   const git = createGit(repoPath);
 
-  let _fetchSucceeded = false;
+  let fetchSucceeded = false;
 
   // Pull latest from remote if requested
   if (pullLatest) {
     try {
       // Fetch all branches to ensure remote tracking branches exist
       await git.fetch(['origin']);
-      _fetchSucceeded = true;
+      fetchSucceeded = true;
       console.log('✅ Fetched latest from origin');
+
+      // If not creating a new branch, update local branch to match remote
+      if (!createBranch) {
+        try {
+          // Check if local branch exists
+          const branches = await git.branch();
+          const localBranchExists = branches.all.includes(ref);
+
+          if (localBranchExists) {
+            // Update local branch to match remote (if remote exists)
+            const remoteBranches = await git.branch(['-r']);
+            const remoteBranchExists = remoteBranches.all.includes(`origin/${ref}`);
+
+            if (remoteBranchExists) {
+              // Reset local branch to match remote
+              await git.raw(['branch', '-f', ref, `origin/${ref}`]);
+              console.log(`✅ Updated local ${ref} to match origin/${ref}`);
+            }
+          }
+        } catch (error) {
+          console.warn(
+            `⚠️  Failed to update local ${ref} branch:`,
+            error instanceof Error ? error.message : String(error)
+          );
+        }
+      }
     } catch (error) {
       console.warn(
         '⚠️  Failed to fetch from origin (will use local refs):',
@@ -289,9 +315,12 @@ export async function createWorktree(
     args.push('-b', ref);
     // Use sourceBranch as base (e.g., 'main' or 'origin/main')
     if (sourceBranch) {
-      args.push(sourceBranch);
+      // If fetch succeeded, use origin/<branch> to get latest
+      const baseRef = fetchSucceeded ? `origin/${sourceBranch}` : sourceBranch;
+      args.push(baseRef);
     }
   } else {
+    // Not creating a new branch - use the (now updated) local branch
     args.push(ref);
   }
 
