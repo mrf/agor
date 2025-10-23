@@ -2,9 +2,12 @@
  * ToolUseRenderer - Displays tool invocations and results
  *
  * Renders tool_use and tool_result content blocks with:
+ * - Custom renderers for specific tools (via registry)
  * - Tool output/result
  * - Error states
  * - Collapsible input parameters
+ *
+ * Custom renderers are defined in ./renderers/index.ts
  *
  * Note: This component does NOT use ThoughtChain - parent components
  * (like AgentChain) are responsible for wrapping this in ThoughtChain items.
@@ -12,6 +15,7 @@
 
 import { Typography, theme } from 'antd';
 import type React from 'react';
+import { getToolRenderer } from './renderers';
 
 const { Paragraph } = Typography;
 
@@ -45,9 +49,30 @@ interface ToolUseRendererProps {
 
 export const ToolUseRenderer: React.FC<ToolUseRendererProps> = ({ toolUse, toolResult }) => {
   const { token } = theme.useToken();
-  const { input } = toolUse;
+  const { input, name } = toolUse;
   const isError = toolResult?.is_error;
 
+  // Check for custom renderer
+  const CustomRenderer = getToolRenderer(name);
+
+  // If custom renderer exists, use it
+  if (CustomRenderer) {
+    return (
+      <CustomRenderer
+        input={input}
+        result={
+          toolResult
+            ? {
+                content: toolResult.content,
+                is_error: toolResult.is_error,
+              }
+            : undefined
+        }
+      />
+    );
+  }
+
+  // Otherwise, use default generic renderer
   // Extract text content from tool result
   const getResultText = (): string => {
     if (!toolResult) return '';
@@ -69,7 +94,7 @@ export const ToolUseRenderer: React.FC<ToolUseRendererProps> = ({ toolUse, toolR
   const resultText = getResultText();
   const hasContent = resultText.trim().length > 0;
 
-  // Simple content renderer (no ThoughtChain wrapper - that's handled by parent)
+  // Default generic content renderer (no ThoughtChain wrapper - that's handled by parent)
   return toolResult ? (
     <div>
       {/* Tool result */}
