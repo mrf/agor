@@ -189,7 +189,8 @@ export const EnvironmentTab: React.FC<EnvironmentTabProps> = ({
   useEffect(() => {
     if (!client) return;
 
-    const handleWorktreeUpdate = (updatedWorktree: Worktree) => {
+    const handleWorktreeUpdate = (data: unknown) => {
+      const updatedWorktree = data as Worktree;
       console.log(
         '🔄 WebSocket worktree update:',
         updatedWorktree.worktree_id.substring(0, 8),

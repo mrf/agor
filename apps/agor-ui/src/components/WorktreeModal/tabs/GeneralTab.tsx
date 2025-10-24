@@ -59,7 +59,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
 
   const handleSave = () => {
     onUpdate?.(worktree.worktree_id, {
-      board_id: boardId ?? null, // Use null instead of undefined (undefined gets stripped by JSON)
+      board_id: boardId || undefined,
       issue_url: issueUrl || undefined,
       pull_request_url: prUrl || undefined,
       notes: notes || undefined,

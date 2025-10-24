@@ -1262,7 +1262,7 @@ const SessionCanvas = ({
               </Paragraph>
               <Paragraph>
                 This zone has a{' '}
-                <Typography.Text strong>{triggerModal.trigger.type}</Typography.Text> trigger
+                <Typography.Text strong>{triggerModal.trigger.behavior}</Typography.Text> trigger
                 configured:
               </Paragraph>
               <Paragraph
