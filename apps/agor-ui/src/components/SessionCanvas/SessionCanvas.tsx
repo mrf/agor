@@ -38,6 +38,7 @@ interface SessionCanvasProps {
   tasks: Record<string, Task[]>;
   users: User[];
   worktrees: import('@agor/core/types').Worktree[];
+  boardObjects: import('@agor/core/types').BoardEntityObject[];
   currentUserId?: string;
   mcpServers?: MCPServer[];
   sessionMcpServerIds?: Record<string, string[]>; // Map sessionId -> mcpServerIds[]
@@ -144,6 +145,7 @@ const SessionCanvas = ({
   client,
   sessions,
   worktrees,
+  boardObjects,
   tasks,
   users,
   currentUserId,
