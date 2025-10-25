@@ -1288,24 +1288,27 @@ const SessionCanvas = ({
         <MiniMap
           nodeColor={node => {
             // Handle cursor nodes (show as bright color)
-            if (node.type === 'cursor') return '#faad14';
+            if (node.type === 'cursor') return token.colorWarning;
 
-            // Handle board objects (zones)
-            if (node.type === 'zone') return '#d9d9d9';
+            // Handle comment nodes
+            if (node.type === 'comment') return token.colorTextSecondary;
+
+            // Handle board objects (zones) - darker gray for visibility
+            if (node.type === 'zone') return token.colorTextSecondary;
 
             // Handle session nodes
             const session = node.data.session as Session;
-            if (!session) return '#d9d9d9';
+            if (!session) return token.colorTextSecondary;
 
             switch (session.status) {
               case 'running':
-                return '#1890ff';
+                return token.colorPrimary;
               case 'completed':
-                return '#52c41a';
+                return token.colorSuccess;
               case 'failed':
-                return '#ff4d4f';
+                return token.colorError;
               default:
-                return '#d9d9d9';
+                return token.colorTextSecondary;
             }
           }}
           pannable
