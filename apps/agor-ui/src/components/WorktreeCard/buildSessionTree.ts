@@ -8,9 +8,12 @@
 import type { Session } from '@agor/core/types';
 import type { DataNode } from 'antd/es/tree';
 
+export type SessionRelationshipType = 'root' | 'spawn' | 'fork';
+
 export interface SessionTreeNode extends DataNode {
   key: string;
   session: Session;
+  relationshipType: SessionRelationshipType;
   children?: SessionTreeNode[];
 }
 
@@ -46,22 +49,33 @@ export function buildSessionTree(sessions: Session[]): SessionTreeNode[] {
   }
 
   // Build tree recursively
-  function buildNode(session: Session): SessionTreeNode {
+  function buildNode(session: Session, isRoot = false): SessionTreeNode {
     const children = childrenMap.get(session.session_id) || [];
+
+    // Determine relationship type
+    let relationshipType: SessionRelationshipType = 'root';
+    if (!isRoot) {
+      if (session.genealogy?.parent_session_id) {
+        relationshipType = 'spawn';
+      } else if (session.genealogy?.forked_from_session_id) {
+        relationshipType = 'fork';
+      }
+    }
 
     const node: SessionTreeNode = {
       key: session.session_id,
       session,
+      relationshipType,
       // title will be rendered by titleRender prop
     };
 
     if (children.length > 0) {
-      node.children = children.map(buildNode);
+      node.children = children.map(child => buildNode(child, false));
     }
 
     return node;
   }
 
   // Build trees for each root
-  return roots.map(buildNode);
+  return roots.map(root => buildNode(root, true));
 }

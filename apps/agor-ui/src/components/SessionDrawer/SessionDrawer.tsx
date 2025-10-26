@@ -34,6 +34,8 @@ import {
   theme,
 } from 'antd';
 import React from 'react';
+import spawnSubsessionTemplate from '../../templates/spawn_subsession.hbs?raw';
+import { compileTemplate } from '../../utils/templates';
 import { ConversationView } from '../ConversationView';
 import { EnvironmentPill } from '../EnvironmentPill';
 import { CreatedByTag } from '../metadata';
@@ -53,6 +55,11 @@ const { TextArea } = Input;
 
 // Re-export PermissionMode from SDK for convenience
 export type { PermissionMode };
+
+// Compile the spawn subsession template once at module level
+const compiledSpawnSubsessionTemplate = compileTemplate<{ userPrompt: string }>(
+  spawnSubsessionTemplate
+);
 
 interface SessionDrawerProps {
   client: AgorClient | null;
@@ -200,7 +207,13 @@ const SessionDrawer = ({
 
   const handleSubsession = () => {
     if (inputValue.trim()) {
-      onSubsession?.(inputValue);
+      // Generate meta-prompt using the template
+      const metaPrompt = compiledSpawnSubsessionTemplate({
+        userPrompt: inputValue,
+      });
+
+      // Send meta-prompt to the PARENT session (agent will use MCP tool)
+      onSendPrompt?.(metaPrompt, permissionMode);
       setInputValue('');
     }
   };

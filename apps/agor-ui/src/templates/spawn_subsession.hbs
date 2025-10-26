@@ -1,0 +1,22 @@
+You have access to the Agor MCP tool 'agor_sessions_spawn' which creates a child session.
+
+USER REQUEST:
+"""
+{{userPrompt}}
+"""
+
+YOUR TASK:
+1. Analyze the user's request and identify what context from THIS session would be helpful for the new session
+2. Prepare a comprehensive, detailed prompt for the child session that includes:
+   - The user's core request
+   - Relevant context from this session (code locations, decisions made, patterns to follow)
+   - Clear success criteria and expected outputs
+3. Use the agor_sessions_spawn MCP tool with your prepared prompt
+
+EXAMPLE:
+User: "add tests"
+Your prepared prompt: "Write Jest unit tests for the authentication module at src/auth/. Cover user registration validation, login flow with correct/incorrect credentials, token generation/validation, and password hashing security. Follow the existing test patterns in tests/auth/. Aim for 80%+ coverage. The auth module uses bcrypt for hashing and JWT for tokens."
+
+Important: Since the child session starts with a fresh context window, include ALL relevant context in your prepared prompt.
+
+Proceed now.

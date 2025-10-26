@@ -133,6 +133,17 @@ const WorktreeCard = ({
   const renderSessionNode = (node: SessionTreeNode) => {
     const session = node.session;
 
+    // Get relationship icon based on type
+    const getRelationshipIcon = () => {
+      if (node.relationshipType === 'fork') {
+        return <ForkOutlined style={{ fontSize: 10, color: token.colorWarning }} />;
+      }
+      if (node.relationshipType === 'spawn') {
+        return <SubnodeOutlined style={{ fontSize: 10, color: token.colorInfo }} />;
+      }
+      return null;
+    };
+
     // Dropdown menu items for session actions
     const sessionMenuItems: MenuProps['items'] = [
       {
@@ -183,6 +194,7 @@ const WorktreeCard = ({
       >
         <Space size={4} align="center" style={{ flex: 1, minWidth: 0 }}>
           <ToolIcon tool={session.agentic_tool} size={20} />
+          {getRelationshipIcon()}
           <Typography.Text
             strong
             style={{
