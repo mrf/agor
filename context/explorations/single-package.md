@@ -493,8 +493,81 @@ prisma migrate dev             # Auto-starts Prisma Studio
 - [ ] Publish `agor-live` to npm
 - [ ] Update README with npm install instructions
 - [ ] Add quickstart guide (install → daemon start → CLI usage)
+- [ ] Document distribution strategy in `apps/agor-docs/pages/guide/architecture.mdx` (new "npm Packages" section)
 
 **Timeline:** 1-2 weeks
+
+---
+
+## Development vs Production Context Detection
+
+### Problem
+
+The CLI needs to behave differently depending on execution context:
+
+- **Development** (monorepo source): Manual daemon management via `pnpm dev`
+- **Production** (installed npm package): Daemon lifecycle commands available
+
+### Detection Strategy
+
+**Check installation path:**
+
+```typescript
+// apps/agor-cli/src/utils/context.ts
+
+export function isInstalledPackage(): boolean {
+  // Running from node_modules = installed package
+  return __dirname.includes('node_modules/agor-live');
+}
+
+export function getDaemonPath(): string | null {
+  if (isInstalledPackage()) {
+    // Production: bundled daemon in dist/
+    return path.join(__dirname, '../../dist/daemon/index.js');
+  } else {
+    // Development: no daemon lifecycle (use pnpm dev)
+    return null;
+  }
+}
+```
+
+### Command Behavior by Context
+
+| Command             | Development Mode                  | Production Mode                     |
+| ------------------- | --------------------------------- | ----------------------------------- |
+| `agor daemon start` | ❌ Error: "Use `pnpm dev`"        | ✅ Spawns background daemon         |
+| `agor daemon stop`  | ❌ Error: "Use Ctrl+C"            | ✅ Stops daemon via PID file        |
+| `agor session list` | ✅ Works (daemon must be running) | ✅ Works (daemon must be running)   |
+| `agor ui open`      | ✅ Opens `http://localhost:5173`  | ✅ Opens `http://localhost:3030/ui` |
+
+### Error Messages
+
+**Development context:**
+
+```bash
+$ agor daemon start
+Error: Daemon lifecycle commands only work in production.
+
+In development, start the daemon with:
+  cd apps/agor-daemon && pnpm dev
+```
+
+**Production context (missing daemon binary):**
+
+```bash
+$ agor daemon start
+Error: Daemon binary not found at: /usr/local/lib/node_modules/agor-live/dist/daemon/index.js
+
+Your installation may be corrupted. Try reinstalling:
+  npm install -g agor-live
+```
+
+### Implementation Notes
+
+- All daemon lifecycle commands (`start`, `stop`, `status`, `logs`, `restart`) check context first
+- Regular commands (session, repo, board, etc.) work in both contexts
+- Development mode assumes daemon runs via `pnpm dev` (manual management)
+- Production mode provides daemon lifecycle automation
 
 ---
 

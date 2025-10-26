@@ -158,6 +158,39 @@ async function main() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Serve static UI files in production (when installed as npm package)
+  // In development, UI runs on separate Vite dev server
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction) {
+    const path = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const { existsSync } = await import('node:fs');
+
+    // Get directory of the currently executing file
+    const dirname =
+      typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
+
+    // UI is bundled in dist/ui relative to daemon entry point
+    // Daemon is at: /path/to/agor-live/dist/daemon/index.js
+    // UI is at: /path/to/agor-live/dist/ui/
+    const uiPath = path.resolve(dirname, '../ui');
+
+    if (existsSync(uiPath)) {
+      console.log(`📂 Serving UI from: ${uiPath}`);
+
+      // Use type assertion for Express static middleware (FeathersJS type compatibility)
+      app.use('/ui', express.static(uiPath) as never);
+
+      // Serve index.html for all /ui/* routes (SPA fallback)
+      app.use('/ui/*', ((_req: unknown, res: express.Response) => {
+        res.sendFile(path.join(uiPath, 'index.html'));
+      }) as never);
+    } else {
+      console.warn(`⚠️  UI directory not found at ${uiPath} - UI will not be served`);
+      console.warn(`   This is expected in development mode (UI runs on port ${UI_PORT})`);
+    }
+  }
+
   // Configure REST and Socket.io with CORS
   app.configure(rest());
 

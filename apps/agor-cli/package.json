@@ -7,7 +7,7 @@
     "agor": "./bin/run.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
     "dev": "NODE_NO_WARNINGS=1 tsx bin/dev.ts",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit"
@@ -23,7 +23,9 @@
   "devDependencies": {
     "@types/inquirer": "^9.0.9",
     "@types/node": "^22.10.2",
+    "glob": "^11.0.3",
     "oclif": "^4.22.32",
+    "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.9.3"
   },

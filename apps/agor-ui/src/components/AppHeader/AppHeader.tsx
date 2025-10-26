@@ -82,7 +82,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     >
       <Space size={16} align="center">
         <img
-          src="/favicon.png"
+          src={`${import.meta.env.BASE_URL}favicon.png`}
           alt="Agor logo"
           style={{
             height: 50,

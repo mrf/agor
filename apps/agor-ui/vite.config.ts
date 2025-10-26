@@ -5,6 +5,10 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
 
+  // Set base path for production builds (served from /ui by daemon)
+  // In development, this is ignored (uses default /)
+  base: process.env.NODE_ENV === 'production' ? '/ui/' : '/',
+
   // Fix "504 Outdated Optimize Dep" errors with workspace dependencies
   optimizeDeps: {
     // Exclude workspace dependencies from pre-bundling

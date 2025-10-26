@@ -53,7 +53,7 @@ export function LoginPage({ onLogin, loading = false, error }: LoginPageProps) {
         <Space direction="vertical" size="large" style={{ width: '100%', marginBottom: 32 }}>
           <div style={{ textAlign: 'center' }}>
             <img
-              src="/favicon.png"
+              src={`${import.meta.env.BASE_URL}favicon.png`}
               alt="Agor Logo"
               style={{
                 width: 80,
