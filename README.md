@@ -178,12 +178,12 @@ graph TB
         Services["Services<br/>Sessions, Tasks, Messages<br/>Boards, Worktrees, Repos"]
         AgentSDKs["Agent SDKs<br/>Claude, Codex, Gemini"]
         ORM["Drizzle ORM"]
+    end
 
-        subgraph Storage
-            DB[("LibSQL Database<br/>~/.agor/agor.db")]
-            Git["Git Worktrees<br/>~/.agor/worktrees/"]
-            Config["Config<br/>~/.agor/config.yaml"]
-        end
+    subgraph Storage
+        DB[("LibSQL Database<br/>~/.agor/agor.db")]
+        Git["Git Worktrees<br/>~/.agor/worktrees/"]
+        Config["Config<br/>~/.agor/config.yaml"]
     end
 
     CLI --> Client
