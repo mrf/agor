@@ -215,11 +215,12 @@ export interface MCPConfigFile {
 
 /**
  * MCP Servers config for SDK (passed to query())
+ * Uses 'type' field as per Claude Code's MCP config format
  */
 export type MCPServersConfig = Record<
   string,
   {
-    transport?: 'stdio' | 'http' | 'sse';
+    type?: 'stdio' | 'http' | 'sse';
     command?: string;
     args?: string[];
     url?: string;

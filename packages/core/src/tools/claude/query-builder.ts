@@ -333,7 +333,7 @@ export async function setupQuery(
     console.log(`🔌 Configuring Agor MCP server (self-access to daemon)`);
     const mcpConfig = {
       agor: {
-        transport: 'http' as const,
+        type: 'http' as const,
         url: `${daemonUrl}/mcp?sessionToken=${mcpToken}`,
       },
     };
@@ -438,27 +438,22 @@ export async function setupQuery(
         for (const { server, source } of uniqueServers) {
           console.log(`   - ${server.name} (${server.transport}) [${source}]`);
 
-          // Build server config based on transport type
+          // Build server config (convert 'transport' field to 'type' for Claude Code)
+          const serverConfig: Record<string, unknown> = {
+            type: server.transport,
+            env: server.env,
+          };
+
+          // Add transport-specific fields
           if (server.transport === 'stdio') {
-            mcpConfig[server.name] = {
-              transport: 'stdio' as const,
-              command: server.command,
-              args: server.args || [],
-              env: server.env,
-            };
-          } else if (server.transport === 'http') {
-            mcpConfig[server.name] = {
-              transport: 'http' as const,
-              url: server.url,
-              env: server.env,
-            };
-          } else if (server.transport === 'sse') {
-            mcpConfig[server.name] = {
-              transport: 'sse' as const,
-              url: server.url,
-              env: server.env,
-            };
+            serverConfig.command = server.command;
+            serverConfig.args = server.args || [];
+          } else {
+            // http and sse both use url
+            serverConfig.url = server.url;
           }
+
+          mcpConfig[server.name] = serverConfig;
 
           // Add tools to allowlist
           if (server.tools) {
