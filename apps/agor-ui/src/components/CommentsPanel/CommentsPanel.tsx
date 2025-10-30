@@ -9,6 +9,8 @@ import type {
 } from '@agor/core/types';
 import { groupReactions, isThreadRoot } from '@agor/core/types';
 import {
+  AppstoreOutlined,
+  BranchesOutlined,
   CheckOutlined,
   CloseOutlined,
   CommentOutlined,
@@ -515,7 +517,7 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
 
     for (const thread of filteredThreads) {
       let groupKey = 'board';
-      let groupLabel = 'Board Comments';
+      let groupLabel = 'Board';
       let groupType: 'zone' | 'worktree' | 'board' = 'board';
       let groupColor: string | undefined;
 
@@ -533,14 +535,14 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
         } else if (parent_type === 'worktree') {
           groupKey = `worktree-${parent_id}`;
           const worktree = worktrees.find(w => w.worktree_id === parent_id);
-          groupLabel = worktree ? `🌳 ${worktree.name}` : `🌳 Worktree (${parent_id})`;
+          groupLabel = worktree ? worktree.name : `Worktree (${parent_id})`;
           groupType = 'worktree';
         }
       } else if (thread.worktree_id) {
         // Check for FK-based worktree attachment
         groupKey = `worktree-${thread.worktree_id}`;
         const worktree = worktrees.find(w => w.worktree_id === thread.worktree_id);
-        groupLabel = worktree ? `🌳 ${worktree.name}` : `🌳 Worktree (${thread.worktree_id})`;
+        groupLabel = worktree ? worktree.name : `Worktree (${thread.worktree_id})`;
         groupType = 'worktree';
       }
 
@@ -698,7 +700,10 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
               key: groupKey,
               label: (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {group.color && (
+                  {group.type === 'board' && (
+                    <AppstoreOutlined style={{ fontSize: 14, color: token.colorPrimary }} />
+                  )}
+                  {group.type === 'zone' && group.color && (
                     <div
                       style={{
                         width: 12,
@@ -712,6 +717,9 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
                         borderRadius: 2,
                       }}
                     />
+                  )}
+                  {group.type === 'worktree' && (
+                    <BranchesOutlined style={{ fontSize: 14, color: token.colorPrimary }} />
                   )}
                   <Text strong>{group.label}</Text>
                   <Badge
