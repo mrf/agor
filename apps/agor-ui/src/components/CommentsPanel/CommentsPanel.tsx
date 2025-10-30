@@ -559,6 +559,25 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
     return groups;
   }, [filteredThreads, boardObjects, worktrees]);
 
+  // Sort groups by scope hierarchy: Board → Zones → Worktrees (larger to smaller)
+  const sortedGroupEntries = useMemo(() => {
+    const entries = Object.entries(groupedThreads);
+
+    return entries.sort(([, a], [, b]) => {
+      // Type priority: board (0) < zone (1) < worktree (2)
+      const typeOrder = { board: 0, zone: 1, worktree: 2 };
+      const aOrder = typeOrder[a.type];
+      const bOrder = typeOrder[b.type];
+
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+
+      // Within same type, sort alphabetically by label
+      return a.label.localeCompare(b.label);
+    });
+  }, [groupedThreads]);
+
   // Scroll to selected comment when it changes
   useEffect(() => {
     if (selectedCommentId && commentRefs.current[selectedCommentId]) {
@@ -676,7 +695,7 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
             styles={{
               content: { padding: '4px 0' }, // Reduced padding
             }}
-            items={Object.entries(groupedThreads).map(([groupKey, group]) => ({
+            items={sortedGroupEntries.map(([groupKey, group]) => ({
               key: groupKey,
               label: (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
