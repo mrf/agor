@@ -11,6 +11,7 @@ import { execSync } from 'node:child_process';
 import type { MessagesRepository } from '../../db/repositories/messages';
 import type { SessionMCPServerRepository } from '../../db/repositories/session-mcp-servers';
 import type { SessionRepository } from '../../db/repositories/sessions';
+import type { WorktreeRepository } from '../../db/repositories/worktrees';
 import { generateId } from '../../lib/ids';
 import {
   type Message,
@@ -35,6 +36,7 @@ export class CodexTool implements ITool {
     private messagesRepo?: MessagesRepository,
     private sessionsRepo?: SessionRepository,
     private sessionMCPServerRepo?: SessionMCPServerRepository,
+    private worktreesRepo?: WorktreeRepository,
     apiKey?: string,
     private messagesService?: MessagesService,
     private tasksService?: TasksService
@@ -44,6 +46,7 @@ export class CodexTool implements ITool {
         messagesRepo,
         sessionsRepo,
         sessionMCPServerRepo,
+        worktreesRepo,
         apiKey
       );
     }

@@ -79,7 +79,7 @@ const MCPServerFormFields: React.FC<MCPServerFormFieldsProps> = ({
           rules={[{ required: true }]}
           initialValue="stdio"
         >
-          <Select onChange={(value) => onTransportChange?.(value as 'stdio' | 'http' | 'sse')}>
+          <Select onChange={value => onTransportChange?.(value as 'stdio' | 'http' | 'sse')}>
             <Select.Option value="stdio">stdio (Local process)</Select.Option>
             <Select.Option value="http">HTTP</Select.Option>
             <Select.Option value="sse">SSE (Server-Sent Events)</Select.Option>
@@ -120,7 +120,6 @@ const MCPServerFormFields: React.FC<MCPServerFormFieldsProps> = ({
       >
         <Select>
           <Select.Option value="global">Global (all sessions)</Select.Option>
-          <Select.Option value="team">Team</Select.Option>
           <Select.Option value="repo">Repository</Select.Option>
           <Select.Option value="session">Session</Select.Option>
         </Select>
@@ -156,7 +155,7 @@ export const MCPServersTable: React.FC<MCPServersTableProps> = ({
   const [transport, setTransport] = useState<'stdio' | 'http' | 'sse'>('stdio');
 
   const handleCreate = () => {
-    form.validateFields().then((values) => {
+    form.validateFields().then(values => {
       const data: CreateMCPServerInput = {
         name: values.name,
         display_name: values.display_name,
@@ -209,7 +208,7 @@ export const MCPServersTable: React.FC<MCPServersTableProps> = ({
   const handleUpdate = () => {
     if (!editingServer) return;
 
-    form.validateFields().then((values) => {
+    form.validateFields().then(values => {
       const updates: UpdateMCPServerInput = {
         display_name: values.display_name,
         description: values.description,
@@ -282,7 +281,6 @@ export const MCPServersTable: React.FC<MCPServersTableProps> = ({
       render: (scope: string) => {
         const colors: Record<string, string> = {
           global: 'purple',
-          team: 'orange',
           repo: 'cyan',
           session: 'magenta',
         };

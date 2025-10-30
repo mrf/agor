@@ -11,6 +11,7 @@ import { Codex, type Thread, type ThreadItem } from '@openai/codex-sdk';
 import type { MessagesRepository } from '../../db/repositories/messages';
 import type { SessionMCPServerRepository } from '../../db/repositories/session-mcp-servers';
 import type { SessionRepository } from '../../db/repositories/sessions';
+import type { WorktreeRepository } from '../../db/repositories/worktrees';
 import type { CodexPermissionMode, PermissionMode, SessionID, TaskID } from '../../types';
 import { DEFAULT_CODEX_MODEL } from './models';
 
@@ -91,17 +92,33 @@ export class CodexPromptService {
   private lastApprovalPolicy: string | null = null;
   private lastMCPServersHash: string | null = null;
   private stopRequested = new Map<SessionID, boolean>();
+  private apiKey: string | undefined;
 
   constructor(
     _messagesRepo: MessagesRepository,
     private sessionsRepo: SessionRepository,
     private sessionMCPServerRepo?: SessionMCPServerRepository,
+    private worktreesRepo?: WorktreeRepository,
     apiKey?: string
   ) {
+    // Store API key for reinitializing SDK
+    this.apiKey = apiKey;
     // Initialize Codex SDK
     this.codex = new Codex({
       apiKey: apiKey || process.env.OPENAI_API_KEY,
     });
+  }
+
+  /**
+   * Reinitialize Codex SDK to pick up config changes
+   * Call this after updating ~/.codex/config.toml
+   */
+  private reinitializeCodex(): void {
+    console.log('🔄 [Codex] Reinitializing SDK to pick up config changes...');
+    this.codex = new Codex({
+      apiKey: this.apiKey || process.env.OPENAI_API_KEY,
+    });
+    console.log('✅ [Codex] SDK reinitialized');
   }
 
   /**
@@ -217,6 +234,9 @@ ${mcpServersToml}`;
 
     this.lastMCPServersHash = configHash;
     console.log(`✅ [Codex] Updated config.toml with approval_policy = "${approvalPolicy}"`);
+
+    // Reinitialize Codex SDK to pick up the new config
+    this.reinitializeCodex();
     if (stdioServers.length > 0) {
       console.log(
         `✅ [Codex MCP] Configured ${stdioServers.length} STDIO MCP server(s): ${stdioServers.map(s => s.name).join(', ')}`
@@ -316,8 +336,6 @@ ${mcpServersToml}`;
     }
 
     console.log(`🔍 [Codex] Starting prompt execution for session ${sessionId.substring(0, 8)}`);
-    // TODO: Update to use worktree path after worktree-centric refactor
-    // console.log(`   Working directory: ${session.repo.cwd}`);
     console.log(`   Permission mode: ${permissionMode || 'not specified (will use default)'}`);
     console.log(`   Existing thread ID: ${session.sdk_session_id || 'none (will create new)'}`);
 
@@ -358,10 +376,19 @@ ${mcpServersToml}`;
       );
     }
 
-    // TODO: Update to use worktree path after worktree-centric refactor
-    // Build thread options with sandbox mode
+    // Fetch worktree to get working directory
+    const worktree = this.worktreesRepo
+      ? await this.worktreesRepo.findById(session.worktree_id)
+      : null;
+    if (!worktree) {
+      throw new Error(`Worktree ${session.worktree_id} not found for session ${sessionId}`);
+    }
+
+    console.log(`   Working directory: ${worktree.path}`);
+
+    // Build thread options with sandbox mode and worktree working directory
     const threadOptions = {
-      workingDirectory: process.cwd(), // Temporary fallback
+      workingDirectory: worktree.path,
       skipGitRepoCheck: false,
       sandboxMode,
     };

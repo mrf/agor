@@ -883,6 +883,7 @@ async function main() {
     messagesRepo,
     sessionsRepo,
     sessionMCPRepo,
+    worktreesRepo, // Worktrees repo for fetching worktree paths
     openaiApiKey,
     app.service('messages'),
     app.service('tasks')

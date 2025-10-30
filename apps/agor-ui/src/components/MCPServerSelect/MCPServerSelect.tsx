@@ -6,7 +6,7 @@ export interface MCPServerSelectProps extends Omit<SelectProps, 'options'> {
   value?: string[];
   onChange?: (value: string[]) => void;
   placeholder?: string;
-  filterByScope?: 'global' | 'team' | 'repo' | 'session';
+  filterByScope?: 'global' | 'repo' | 'session';
 }
 
 /**
@@ -14,7 +14,7 @@ export interface MCPServerSelectProps extends Omit<SelectProps, 'options'> {
  *
  * Features:
  * - Displays enabled MCP servers with display_name or fallback to name
- * - Supports filtering by scope (global, team, repo, session)
+ * - Supports filtering by scope (global, repo, session)
  * - Multi-select mode with search
  * - Shows transport type in parentheses (stdio, http, sse)
  */
@@ -28,13 +28,13 @@ export const MCPServerSelect: React.FC<MCPServerSelectProps> = ({
 }) => {
   // Filter servers by scope if specified
   const filteredServers = filterByScope
-    ? mcpServers.filter((server) => server.scope === filterByScope)
+    ? mcpServers.filter(server => server.scope === filterByScope)
     : mcpServers;
 
   // Only show enabled servers
-  const enabledServers = filteredServers.filter((server) => server.enabled);
+  const enabledServers = filteredServers.filter(server => server.enabled);
 
-  const options = enabledServers.map((server) => ({
+  const options = enabledServers.map(server => ({
     label: `${server.display_name || server.name} (${server.transport})`,
     value: server.mcp_server_id,
     disabled: !server.enabled,
