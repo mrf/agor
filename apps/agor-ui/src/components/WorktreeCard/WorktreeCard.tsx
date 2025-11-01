@@ -25,8 +25,8 @@ import { buildSessionTree, type SessionTreeNode } from './buildSessionTree';
 const _WORKTREE_CARD_MAX_WIDTH = 600;
 
 // Session title display configuration for tree view
-const SESSION_TITLE_MAX_LINES = 1; // Limit to 1 line in compact tree view
-const SESSION_TITLE_FALLBACK_CHARS = 80; // Fallback truncation for unsupported browsers
+const SESSION_TITLE_MAX_LINES = 2; // Limit to 2 lines in tree view
+const SESSION_TITLE_FALLBACK_CHARS = 100; // Fallback truncation for unsupported browsers (smaller font = less chars per line)
 
 interface WorktreeCardProps {
   worktree: Worktree;
