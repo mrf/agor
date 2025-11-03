@@ -19,11 +19,12 @@ import {
 } from '@agor/core/types';
 import { RobotOutlined } from '@ant-design/icons';
 import { Bubble } from '@ant-design/x';
-import { Avatar, Space, Spin, Typography, theme } from 'antd';
+import { Space, Spin, Typography, theme } from 'antd';
 
 const { Text } = Typography;
 
 import type React from 'react';
+import { AgorAvatar } from '../AgorAvatar';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { PermissionRequestBlock } from '../PermissionRequestBlock';
 import { ThinkingBlock } from '../ThinkingBlock';
@@ -215,7 +216,7 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({
                 agentic_tool ? (
                   <ToolIcon tool={agentic_tool} size={32} />
                 ) : (
-                  <Avatar
+                  <AgorAvatar
                     icon={<RobotOutlined />}
                     style={{ backgroundColor: token.colorBgContainer }}
                   />
@@ -384,13 +385,11 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({
             placement={isUser ? 'end' : 'start'}
             avatar={
               isUser ? (
-                <Avatar style={{ backgroundColor: token.colorPrimaryBg, fontSize: '20px' }}>
-                  {userEmoji}
-                </Avatar>
+                <AgorAvatar>{userEmoji}</AgorAvatar>
               ) : agentic_tool ? (
                 <ToolIcon tool={agentic_tool} size={32} />
               ) : (
-                <Avatar
+                <AgorAvatar
                   icon={<RobotOutlined />}
                   style={{ backgroundColor: token.colorBgContainer }}
                 />
@@ -445,7 +444,7 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({
               agentic_tool ? (
                 <ToolIcon tool={agentic_tool} size={32} />
               ) : (
-                <Avatar
+                <AgorAvatar
                   icon={<RobotOutlined />}
                   style={{ backgroundColor: token.colorBgContainer }}
                 />

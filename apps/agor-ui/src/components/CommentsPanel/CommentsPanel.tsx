@@ -20,7 +20,6 @@ import {
   UndoOutlined,
 } from '@ant-design/icons';
 import {
-  Avatar,
   Badge,
   Button,
   Collapse,
@@ -30,11 +29,13 @@ import {
   Space,
   Spin,
   Tag,
+  Tooltip,
   Typography,
   theme,
 } from 'antd';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { AgorAvatar } from '../AgorAvatar';
 import { ZONE_CONTENT_OPACITY } from '../SessionCanvas/canvas/BoardObjectNodes';
 
 const { Text, Title } = Typography;
@@ -68,8 +69,10 @@ type FilterMode = 'all' | 'active';
 const ReactionDisplay: React.FC<{
   reactions: CommentReaction[];
   currentUserId: string;
+  users: User[];
   onToggle: (emoji: string) => void;
-}> = ({ reactions, currentUserId, onToggle }) => {
+}> = ({ reactions, currentUserId, users, onToggle }) => {
+  const { token } = theme.useToken();
   const grouped: ReactionSummary = groupReactions(reactions);
 
   if (Object.keys(grouped).length === 0) {
@@ -80,21 +83,43 @@ const ReactionDisplay: React.FC<{
     <>
       {Object.entries(grouped).map(([emoji, userIds]) => {
         const hasReacted = userIds.includes(currentUserId);
+
+        // Build tooltip content with list of users who reacted
+        const reactedUsers = userIds
+          .map(userId => users.find(u => u.user_id === userId))
+          .filter(Boolean)
+          .map(user => user!.name || user!.email.split('@')[0]);
+
+        const tooltipContent =
+          reactedUsers.length > 0 ? reactedUsers.join(', ') : 'Anonymous users';
+
         return (
-          <Button
-            key={emoji}
-            size="small"
-            type={hasReacted ? 'primary' : 'default'}
-            onClick={() => onToggle(emoji)}
-            style={{
-              borderRadius: 12,
-              height: 24,
-              padding: '0 8px',
-              fontSize: 12,
-            }}
-          >
-            {emoji} {userIds.length}
-          </Button>
+          <Tooltip key={emoji} title={tooltipContent}>
+            <Button
+              size="small"
+              onClick={() => onToggle(emoji)}
+              style={{
+                borderRadius: 12,
+                height: 24,
+                padding: '0 8px',
+                fontSize: 12,
+                backgroundColor: hasReacted ? token.colorPrimaryBg : 'transparent',
+                borderColor: token.colorBorder,
+                color: token.colorText,
+                transition: 'background-color 0.2s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = token.colorPrimaryBgHover;
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = hasReacted
+                  ? token.colorPrimaryBg
+                  : 'transparent';
+              }}
+            >
+              {emoji} {userIds.length}
+            </Button>
+          </Tooltip>
         );
       })}
     </>
@@ -167,11 +192,7 @@ const ReplyItem: React.FC<{
         onMouseLeave={() => setReplyHovered(false)}
       >
         <List.Item.Meta
-          avatar={
-            <Avatar size="small" style={{ backgroundColor: token.colorPrimary }}>
-              {replyUser?.emoji || '👤'}
-            </Avatar>
-          }
+          avatar={<AgorAvatar>{replyUser?.emoji || '👤'}</AgorAvatar>}
           title={
             <Space size={4}>
               <Text strong style={{ fontSize: token.fontSizeSM }}>
@@ -183,24 +204,26 @@ const ReplyItem: React.FC<{
             </Space>
           }
           description={
-            <div style={{ marginTop: 2 }}>
-              <Text style={{ fontSize: token.fontSizeSM }}>{reply.content}</Text>
-            </div>
+            <>
+              <div style={{ marginTop: 2 }}>
+                <Text style={{ fontSize: token.fontSizeSM }}>{reply.content}</Text>
+              </div>
+              {/* Reactions Row (always visible if reactions exist) */}
+              {onToggleReaction && (reply.reactions || []).length > 0 && (
+                <div style={{ marginTop: 4 }}>
+                  <Space size="small">
+                    <ReactionDisplay
+                      reactions={reply.reactions || []}
+                      currentUserId={currentUserId}
+                      users={users}
+                      onToggle={emoji => onToggleReaction(reply.comment_id, emoji)}
+                    />
+                  </Space>
+                </div>
+              )}
+            </>
           }
         />
-
-        {/* Reactions Row (always visible if reactions exist) */}
-        {onToggleReaction && (reply.reactions || []).length > 0 && (
-          <div style={{ marginTop: 2 }}>
-            <Space size="small">
-              <ReactionDisplay
-                reactions={reply.reactions || []}
-                currentUserId={currentUserId}
-                onToggle={emoji => onToggleReaction(reply.comment_id, emoji)}
-              />
-            </Space>
-          </div>
-        )}
 
         {/* Action buttons overlay (visible on hover) */}
         {replyHovered && (
@@ -289,11 +312,7 @@ const CommentThread: React.FC<{
       >
         {/* Thread Root */}
         <List.Item.Meta
-          avatar={
-            <Avatar size="small" style={{ backgroundColor: token.colorPrimary }}>
-              {user?.emoji || '👤'}
-            </Avatar>
-          }
+          avatar={<AgorAvatar>{user?.emoji || '👤'}</AgorAvatar>}
           title={
             <Space size={4}>
               <Text strong style={{ fontSize: token.fontSizeSM }}>
@@ -318,24 +337,26 @@ const CommentThread: React.FC<{
             </Space>
           }
           description={
-            <div style={{ marginTop: 4 }}>
-              <Text style={{ fontSize: token.fontSizeSM }}>{comment.content}</Text>
-            </div>
+            <>
+              <div style={{ marginTop: 4 }}>
+                <Text style={{ fontSize: token.fontSizeSM }}>{comment.content}</Text>
+              </div>
+              {/* Reactions Row (always visible if reactions exist) */}
+              {onToggleReaction && (comment.reactions || []).length > 0 && (
+                <div style={{ marginTop: 4 }}>
+                  <Space size="small">
+                    <ReactionDisplay
+                      reactions={comment.reactions || []}
+                      currentUserId={currentUserId}
+                      users={users}
+                      onToggle={emoji => onToggleReaction(comment.comment_id, emoji)}
+                    />
+                  </Space>
+                </div>
+              )}
+            </>
           }
         />
-
-        {/* Reactions Row (always visible if reactions exist) */}
-        {onToggleReaction && (comment.reactions || []).length > 0 && (
-          <div style={{ marginTop: 4 }}>
-            <Space size="small">
-              <ReactionDisplay
-                reactions={comment.reactions || []}
-                currentUserId={currentUserId}
-                onToggle={emoji => onToggleReaction(comment.comment_id, emoji)}
-              />
-            </Space>
-          </div>
-        )}
 
         {/* Action buttons overlay (visible on hover) */}
         {isHovered && (

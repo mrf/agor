@@ -5,15 +5,15 @@
  */
 
 import type { ActiveUser } from '@agor/core/types';
-import { Avatar, Tooltip } from 'antd';
+import { Tooltip } from 'antd';
 import type { CSSProperties } from 'react';
+import { AgorAvatar } from '../AgorAvatar';
 import './Facepile.css';
 
 export interface FacepileProps {
   activeUsers: ActiveUser[];
   currentUserId?: string;
   maxVisible?: number;
-  size?: number;
   onUserClick?: (userId: string, cursorPosition?: { x: number; y: number }) => void;
   style?: CSSProperties;
 }
@@ -24,7 +24,6 @@ export interface FacepileProps {
 export const Facepile: React.FC<FacepileProps> = ({
   activeUsers,
   maxVisible = 5,
-  size = 32,
   onUserClick,
   style,
 }) => {
@@ -52,8 +51,7 @@ export const Facepile: React.FC<FacepileProps> = ({
             </div>
           }
         >
-          <Avatar
-            size={size}
+          <AgorAvatar
             style={{
               cursor: onUserClick && cursor ? 'pointer' : 'default',
             }}
@@ -64,13 +62,13 @@ export const Facepile: React.FC<FacepileProps> = ({
             }}
           >
             {user.emoji || '👤'}
-          </Avatar>
+          </AgorAvatar>
         </Tooltip>
       ))}
 
       {overflowCount > 0 && (
         <Tooltip title={`+${overflowCount} more active users`}>
-          <Avatar size={size}>+{overflowCount}</Avatar>
+          <AgorAvatar>+{overflowCount}</AgorAvatar>
         </Tooltip>
       )}
     </div>

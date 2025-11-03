@@ -29,12 +29,13 @@ import {
   UpOutlined,
 } from '@ant-design/icons';
 import { Bubble } from '@ant-design/x';
-import { Avatar, Collapse, Flex, Space, Spin, Tag, Typography, theme } from 'antd';
+import { Collapse, Flex, Space, Spin, Tag, Typography, theme } from 'antd';
 import React, { useMemo } from 'react';
 import { useStreamingMessages } from '../../hooks/useStreamingMessages';
 import { useTaskEvents } from '../../hooks/useTaskEvents';
 import { useTaskMessages } from '../../hooks/useTaskMessages';
 import { AgentChain } from '../AgentChain';
+import { AgorAvatar } from '../AgorAvatar';
 import { MessageBlock } from '../MessageBlock';
 import { CreatedByTag } from '../metadata/CreatedByTag';
 import {
@@ -519,7 +520,7 @@ export const TaskBlock = React.memo<TaskBlockProps>(
                         agentic_tool ? (
                           <ToolIcon tool={agentic_tool} size={32} />
                         ) : (
-                          <Avatar
+                          <AgorAvatar
                             icon={<RobotOutlined />}
                             style={{ backgroundColor: token.colorSuccess }}
                           />
