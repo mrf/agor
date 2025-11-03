@@ -47,8 +47,14 @@ export function findIntersectingObjects(
     // Use measured dimensions (React Flow calculates from DOM)
     // Fall back to width/height props if not yet measured
     const rfNode = node as ReactFlowNode;
-    const nodeWidth = rfNode.measured?.width || node.width || 0;
-    const nodeHeight = rfNode.measured?.height || node.height || 0;
+    const nodeWidth =
+      rfNode.measured?.width ||
+      node.width ||
+      (typeof node.style?.width === 'number' ? node.style.width : 0);
+    const nodeHeight =
+      rfNode.measured?.height ||
+      node.height ||
+      (typeof node.style?.height === 'number' ? node.style.height : 0);
 
     // Get absolute position (accounting for parent transforms)
     const { x: nodeX, y: nodeY } = getAbsoluteNodePosition(node, allNodes);
