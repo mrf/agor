@@ -334,14 +334,23 @@ export const TaskBlock = React.memo<TaskBlockProps>(
           gap={token.sizeUnit / 2}
           style={{ width: 'auto', paddingTop: token.sizeUnit }}
         >
-          {isExpanded ? <UpOutlined /> : <DownOutlined />}
+          {isExpanded ? (
+            <UpOutlined style={{ color: token.colorPrimary }} />
+          ) : (
+            <DownOutlined style={{ color: token.colorPrimary }} />
+          )}
           <TaskStatusIcon status={task.status} size={16} />
         </Flex>
 
         {/* Right column: Content */}
         <Flex vertical flex={1} style={{ minWidth: 0 }}>
-          <Flex align="center" wrap gap={token.sizeUnit / 2}>
-            <Typography.Text strong>
+          <Flex
+            align="center"
+            wrap
+            gap={token.sizeUnit / 2}
+            style={{ marginBottom: token.sizeUnit }}
+          >
+            <Typography.Text>
               {typeof task.description === 'string'
                 ? task.description || 'User Prompt'
                 : 'User Prompt'}
@@ -349,7 +358,7 @@ export const TaskBlock = React.memo<TaskBlockProps>(
           </Flex>
 
           {/* Task metadata */}
-          <Flex wrap gap={token.sizeUnit * 1.5} style={{ marginTop: token.sizeUnit / 2 }}>
+          <Flex wrap gap={token.sizeUnit * 1.5}>
             <TimerPill
               status={task.status}
               startedAt={task.message_range?.start_timestamp || task.created_at}
