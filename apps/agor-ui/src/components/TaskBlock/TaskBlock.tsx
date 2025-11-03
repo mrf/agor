@@ -16,6 +16,7 @@ import {
   type PermissionRequestContent,
   type PermissionScope,
   PermissionStatus,
+  type SessionID,
   type Task,
   TaskStatus,
   type User,
@@ -67,7 +68,7 @@ interface TaskBlockProps {
   currentUserId?: string;
   isExpanded: boolean;
   onExpandChange: (expanded: boolean) => void;
-  sessionId?: string | null;
+  sessionId?: SessionID | null;
   onPermissionDecision?: (
     sessionId: string,
     requestId: string,
@@ -274,7 +275,7 @@ export const TaskBlock: React.FC<TaskBlockProps> = ({
   );
 
   // Track real-time streaming messages (for running tasks)
-  const streamingMessages = useStreamingMessages(client, sessionId || undefined);
+  const streamingMessages = useStreamingMessages(client, sessionId ?? undefined);
 
   // Merge task messages with streaming messages (for running tasks)
   const messages = useMemo(() => {
