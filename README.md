@@ -222,7 +222,7 @@ graph TB
 
 **[Development Guide →](https://agor.live/guide/development)**
 
-Quick start:
+Quick start (localhost):
 
 ```bash
 # Terminal 1: Daemon
@@ -230,6 +230,12 @@ cd apps/agor-daemon && pnpm dev  # :3030
 
 # Terminal 2: UI
 cd apps/agor-ui && pnpm dev      # :5173
+```
+
+Or use Docker:
+
+```bash
+docker compose up
 ```
 
 ---
@@ -242,9 +248,7 @@ Highlights:
 
 - **Match CLI-Native Features** — SDKs are evolving rapidly and exposing more functionality. Push integrations deeper to match all key features available in the underlying CLIs
 - **Bring Your Own IDE** — Connect VSCode, Cursor, or any IDE directly to Agor-managed worktrees via SSH/Remote
-- **Session Forking UI** — Visual genealogy showing how work branched, merged, and evolved
-- **Automated Reports** — AI-generated summaries after task completion capturing outcomes and decisions
-- **Context Management System** — Modular markdown-based context files that compose into session-specific knowledge
+- **Unix User Integration** — Enable true multi-tenancy with per-user Unix isolation for secure collaboration. [Read the exploration →](https://github.com/preset-io/agor/blob/main/context/explorations/unix-user-integration.md)
 
 ---
 
