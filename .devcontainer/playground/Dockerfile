@@ -26,4 +26,12 @@ RUN npm install -g agor-live@latest
 
 WORKDIR /workspace
 
-# Run as root for simplified sandbox
+# Create non-root 'agor' user for development
+RUN useradd -m -s /bin/bash agor && \
+    # Grant sudoers access without password (needed for some development tasks)
+    echo "agor ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/agor && \
+    # Ensure agor owns the workspace
+    chown -R agor:agor /workspace
+
+# Set agor as the default user
+USER agor
