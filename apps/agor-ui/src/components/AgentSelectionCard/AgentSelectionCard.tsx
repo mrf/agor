@@ -1,4 +1,4 @@
-import { Card, Space, Typography } from 'antd';
+import { Card, Space, Tag, Typography } from 'antd';
 import type { AgenticToolOption } from '../../types';
 import { ToolIcon } from '../ToolIcon';
 
@@ -33,6 +33,7 @@ export const AgentSelectionCard: React.FC<AgentSelectionCardProps> = ({
             <Typography.Text strong style={{ fontSize: '14px' }}>
               {agent.name}
             </Typography.Text>
+            {agent.beta && <Tag color="warning">BETA</Tag>}
           </Space>
         </Space>
 

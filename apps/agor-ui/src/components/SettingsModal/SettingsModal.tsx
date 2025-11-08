@@ -16,7 +16,7 @@ import { Modal, Tabs } from 'antd';
 import { useState } from 'react';
 import { WorktreeModal } from '../WorktreeModal';
 import { AboutTab } from './AboutTab';
-import { AgenticToolsTab } from './AgenticToolsTab';
+import { AgenticToolsSection } from './AgenticToolsSection';
 import { BoardsTable } from './BoardsTable';
 import { MCPServersTable } from './MCPServersTable';
 import { ReposTable } from './ReposTable';
@@ -107,8 +107,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleWorktreeRowClick = (worktree: Worktree) => {
     // Snapshot the data when opening modal
     setSelectedWorktree(worktree);
-    setSelectedRepo(repos.find((r) => r.repo_id === worktree.repo_id) || null);
-    setWorktreeSessions(sessions.filter((s) => s.worktree_id === worktree.worktree_id));
+    setSelectedRepo(repos.find(r => r.repo_id === worktree.repo_id) || null);
+    setWorktreeSessions(sessions.filter(s => s.worktree_id === worktree.worktree_id));
     setWorktreeModalOpen(true);
   };
 
@@ -198,9 +198,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             ),
           },
           {
-            key: 'api-keys',
-            label: 'API Keys',
-            children: <AgenticToolsTab client={client} />,
+            key: 'agentic-tools',
+            label: 'Agentic Tools',
+            children: <AgenticToolsSection client={client} />,
           },
           {
             key: 'users',
