@@ -253,6 +253,18 @@ export const App: React.FC<AppProps> = ({
 
   const handleSessionClick = (sessionId: string) => {
     setSelectedSessionId(sessionId);
+
+    // Clear the ready_for_prompt flag when opening the conversation
+    const session = sessions.find(s => s.session_id === sessionId);
+    if (session?.ready_for_prompt) {
+      onUpdateSession?.(sessionId, { ready_for_prompt: false });
+    }
+
+    // Clear the worktree's needs_attention flag when user interacts with it
+    const worktree = worktrees.find(w => w.worktree_id === session?.worktree_id);
+    if (worktree?.needs_attention) {
+      onUpdateWorktree?.(worktree.worktree_id, { needs_attention: false });
+    }
   };
 
   const handleSendPrompt = async (prompt: string, permissionMode?: PermissionMode) => {
@@ -430,6 +442,7 @@ export const App: React.FC<AppProps> = ({
             boardObjects={boardObjects}
             comments={comments}
             currentUserId={user?.user_id}
+            selectedSessionId={selectedSessionId}
             availableAgents={availableAgents}
             mcpServers={mcpServers}
             sessionMcpServerIds={sessionMcpServerIds}
@@ -495,7 +508,10 @@ export const App: React.FC<AppProps> = ({
         mcpServers={mcpServers}
         sessionMcpServerIds={selectedSessionId ? sessionMcpServerIds[selectedSessionId] || [] : []}
         open={!!selectedSessionId}
-        onClose={() => setSelectedSessionId(null)}
+        onClose={() => {
+          setSelectedSessionId(null);
+          // Note: highlight flags already cleared in handleSessionClick when drawer opened
+        }}
         onSendPrompt={handleSendPrompt}
         onFork={handleFork}
         onSubsession={handleSubsession}

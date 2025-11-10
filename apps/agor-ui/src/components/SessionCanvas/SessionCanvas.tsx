@@ -68,6 +68,7 @@ interface SessionCanvasProps {
   boardObjects: import('@agor/core/types').BoardEntityObject[];
   comments: import('@agor/core/types').BoardComment[];
   currentUserId?: string;
+  selectedSessionId?: string | null;
   availableAgents?: AgenticToolOption[];
   mcpServers?: MCPServer[];
   sessionMcpServerIds?: Record<string, string[]>; // Map sessionId -> mcpServerIds[]
@@ -155,6 +156,7 @@ interface WorktreeNodeData {
   parentZoneId?: string;
   zoneName?: string;
   zoneColor?: string;
+  selectedSessionId?: string | null;
 }
 
 // Custom node component that renders WorktreeCard
@@ -168,6 +170,7 @@ const WorktreeNode = ({ data }: { data: WorktreeNodeData }) => {
         tasks={data.tasks}
         users={data.users}
         currentUserId={data.currentUserId}
+        selectedSessionId={data.selectedSessionId}
         onTaskClick={data.onTaskClick}
         onSessionClick={data.onSessionClick}
         onCreateSession={data.onCreateSession}
@@ -209,6 +212,7 @@ const SessionCanvas = ({
   tasks,
   users,
   currentUserId,
+  selectedSessionId,
   availableAgents = [],
   mcpServers = [],
   sessionMcpServerIds = {},
@@ -320,6 +324,7 @@ const SessionCanvas = ({
     setNodes,
     deletedObjectsRef,
     eraserMode: activeTool === 'eraser',
+    selectedSessionId,
   });
 
   // Extract zone labels - memoized to only change when labels actually change
@@ -441,6 +446,7 @@ const SessionCanvas = ({
           tasks,
           users,
           currentUserId,
+          selectedSessionId,
           onTaskClick,
           onSessionClick,
           onCreateSession: onCreateSessionForWorktree,
@@ -471,6 +477,7 @@ const SessionCanvas = ({
     tasks,
     users,
     currentUserId,
+    selectedSessionId,
     onSessionClick,
     onTaskClick,
     onCreateSessionForWorktree,

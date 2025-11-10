@@ -29,6 +29,23 @@ const _WORKTREE_CARD_MAX_WIDTH = 600;
 const SESSION_TITLE_MAX_LINES = 2; // Limit to 2 lines in tree view
 const SESSION_TITLE_FALLBACK_CHARS = 100; // Fallback truncation for unsupported browsers (smaller font = less chars per line)
 
+// Inject CSS animation for pulsing glow effect
+if (typeof document !== 'undefined' && !document.getElementById('worktree-card-animations')) {
+  const style = document.createElement('style');
+  style.id = 'worktree-card-animations';
+  style.textContent = `
+    @keyframes worktree-card-pulse {
+      0%, 100% {
+        filter: brightness(1);
+      }
+      50% {
+        filter: brightness(1.3);
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 interface WorktreeCardProps {
   worktree: Worktree;
   repo: Repo;
@@ -36,6 +53,7 @@ interface WorktreeCardProps {
   tasks: Record<string, Task[]>;
   users: User[];
   currentUserId?: string;
+  selectedSessionId?: string | null; // Currently open session in drawer
   onTaskClick?: (taskId: string) => void;
   onSessionClick?: (sessionId: string) => void;
   onCreateSession?: (worktreeId: string) => void;
@@ -61,6 +79,7 @@ const WorktreeCard = ({
   tasks,
   users,
   currentUserId,
+  selectedSessionId,
   onTaskClick,
   onSessionClick,
   onCreateSession,
@@ -123,6 +142,29 @@ const WorktreeCard = ({
 
   // Check if any session is running
   const hasRunningSession = useMemo(() => sessions.some(s => s.status === 'running'), [sessions]);
+
+  // Check if worktree needs attention (newly created OR has ready sessions)
+  // Don't highlight if a session from this worktree is currently open in the drawer
+  const needsAttention = useMemo(() => {
+    const hasReadySession = sessions.some(s => s.ready_for_prompt === true);
+    const hasOpenSession = sessions.some(s => s.session_id === selectedSessionId);
+    const shouldHighlight = (worktree.needs_attention || hasReadySession) && !hasOpenSession;
+
+    console.log('[WorktreeCard] Checking attention state:', {
+      worktreeName: worktree.name,
+      worktreeNeedsAttention: worktree.needs_attention,
+      sessions: sessions.map(s => ({
+        id: s.session_id.substring(0, 8),
+        ready_for_prompt: s.ready_for_prompt,
+        status: s.status,
+      })),
+      hasReadySession,
+      hasOpenSession,
+      selectedSessionId: selectedSessionId?.substring(0, 8),
+      shouldHighlight,
+    });
+    return shouldHighlight;
+  }, [sessions, worktree.name, worktree.needs_attention, selectedSessionId]);
 
   // Auto-expand all nodes on mount and when new nodes with children are added
   useEffect(() => {
@@ -188,14 +230,17 @@ const WorktreeCard = ({
     return (
       <div
         style={{
-          border: `1px solid rgba(255, 255, 255, 0.1)`,
+          border: session.ready_for_prompt
+            ? `2px solid ${token.colorPrimary}`
+            : `1px solid rgba(255, 255, 255, 0.1)`,
           borderRadius: 4,
           padding: 8,
-          background: 'rgba(0, 0, 0, 0.2)',
+          background: session.ready_for_prompt ? `${token.colorPrimary}15` : 'rgba(0, 0, 0, 0.2)',
           display: 'flex',
           alignItems: 'center',
           cursor: 'pointer',
           marginBottom: 4,
+          boxShadow: session.ready_for_prompt ? `0 0 12px ${token.colorPrimary}30` : undefined,
         }}
         onClick={() => onSessionClick?.(session.session_id)}
         onContextMenu={e => {
@@ -377,12 +422,35 @@ const WorktreeCard = ({
     </div>
   );
 
+  // Debug: Log when needsAttention changes
+  useEffect(() => {
+    if (needsAttention) {
+      console.log('[WorktreeCard] 🌟 HIGHLIGHTING CARD:', {
+        worktreeName: worktree.name,
+        colorPrimary: token.colorPrimary,
+      });
+    }
+  }, [needsAttention, worktree.name, token.colorPrimary]);
+
   return (
     <Card
       style={{
         width: 500,
         cursor: 'default', // Override React Flow's drag cursor - only drag handles should show grab cursor
         ...(isPinned && zoneColor ? { borderColor: zoneColor, borderWidth: 1 } : {}),
+        ...(needsAttention
+          ? {
+              // Intense multi-layer glow for dark mode visibility
+              boxShadow: `
+                0 0 0 3px ${token.colorPrimary},
+                0 0 20px 4px ${token.colorPrimary}dd,
+                0 0 40px 8px ${token.colorPrimary}88,
+                0 0 60px 12px ${token.colorPrimary}44
+              `,
+              animation: 'worktree-card-pulse 2s ease-in-out infinite',
+              border: `2px solid ${token.colorPrimary}`,
+            }
+          : {}),
       }}
       styles={{
         body: { padding: 16 },

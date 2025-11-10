@@ -53,6 +53,11 @@ export const sessions = sqliteTable(
       .notNull()
       .default(false),
 
+    // UI state (materialized for efficient highlighting queries)
+    ready_for_prompt: integer('ready_for_prompt', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+
     // JSON blob for everything else (cross-DB via json() type)
     data: text('data', { mode: 'json' })
       .$type<{
@@ -357,6 +362,9 @@ export const worktrees = sqliteTable(
     schedule_cron: text('schedule_cron'), // Cron expression (e.g., "0 9 * * 1-5")
     schedule_last_triggered_at: integer('schedule_last_triggered_at'), // Unix timestamp (ms)
     schedule_next_run_at: integer('schedule_next_run_at'), // Unix timestamp (ms)
+
+    // UI state (materialized for efficient highlighting queries)
+    needs_attention: integer('needs_attention', { mode: 'boolean' }).notNull().default(true), // Default true for new worktrees
 
     // JSON blob for everything else
     data: text('data', { mode: 'json' })
