@@ -349,16 +349,12 @@ async function main() {
     })
   );
 
-  // Compress all responses (API + static files)
-  // Pre-compressed static files (.gz/.br) are served directly by expressStaticGzip
-  // Dynamic API responses are compressed on-the-fly
-  app.use(compression() as never);
-
   // Parse JSON with size limits (security: prevent DoS via large payloads)
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // Serve static UI files in production (when installed as npm package)
+  // Serve static UI files in production BEFORE compression middleware
+  // This ensures pre-compressed .br files are served directly
   // In development, UI runs on separate Vite dev server
   const isProduction = process.env.NODE_ENV === 'production';
   if (isProduction) {
@@ -378,13 +374,13 @@ async function main() {
     if (existsSync(uiPath)) {
       console.log(`📂 Serving UI from: ${uiPath}`);
 
-      // Serve pre-compressed Brotli files (.br) with fallback to uncompressed
-      // Brotli gives ~20% better compression than gzip and is supported by all modern browsers
+      // Serve pre-compressed gzip files with fallback to uncompressed
+      // Gzip works over both HTTP and HTTPS (~70% size reduction)
       app.use(
         '/ui',
         expressStaticGzip(uiPath, {
-          enableBrotli: true,
-          orderPreference: ['br'], // Try brotli, fallback to uncompressed (no gzip)
+          enableBrotli: false,
+          orderPreference: ['gz'], // Try gzip first, then uncompressed
           serveStatic: {
             maxAge: '1y', // Cache static assets for 1 year (they have content hashes)
           },
@@ -409,6 +405,11 @@ async function main() {
       console.warn(`   This is expected in development mode (UI runs on port ${UI_PORT})`);
     }
   }
+
+  // Compress dynamic API responses (runs AFTER static file serving)
+  // Static files are already pre-compressed and served by expressStaticGzip
+  // This only compresses API JSON responses on-the-fly
+  app.use(compression() as never);
 
   // Configure REST and Socket.io with CORS
   app.configure(rest());

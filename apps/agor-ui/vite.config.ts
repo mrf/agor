@@ -6,15 +6,13 @@ import viteCompression from 'vite-plugin-compression';
 export default defineConfig({
   plugins: [
     react(),
-    // Pre-compress assets with Brotli (best compression, supported by all modern browsers)
-    // Deletes originals to keep npm package small: 21M → 3M
-    // Main bundle served to users: 851KB (vs 3.5MB uncompressed)
-    // Requires browsers from 2016+ (Chrome 50, Firefox 44, Safari 11, Edge 15)
+    // Pre-compress assets with gzip (works over HTTP and HTTPS)
+    // Gzip: ~1MB compressed (vs 3.5MB uncompressed) - 70% reduction
     viteCompression({
-      algorithm: 'brotliCompress',
-      ext: '.br',
+      algorithm: 'gzip',
+      ext: '.gz',
       threshold: 1024, // Only compress files > 1KB
-      deleteOriginFile: true, // Delete uncompressed files (Brotli-only)
+      deleteOriginFile: false, // Keep originals for fallback
     }),
   ],
 
