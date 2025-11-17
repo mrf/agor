@@ -1,6 +1,7 @@
 import type { AgorClient } from '@agor/core/api';
 import type {
   Board,
+  BoardComment,
   BoardEntityObject,
   BoardID,
   CreateUserInput,
@@ -8,6 +9,7 @@ import type {
   PermissionMode,
   Repo,
   Session,
+  SpawnConfig,
   Task,
   UpdateUserInput,
   User,
@@ -48,7 +50,7 @@ export interface AppProps {
   availableAgents: AgenticToolOption[];
   boards: Board[];
   boardObjects: BoardEntityObject[]; // Positioned worktrees on boards
-  comments: import('@agor/core/types').BoardComment[]; // Board comments for collaboration
+  comments: BoardComment[]; // Board comments for collaboration
   repos: Repo[];
   worktrees: Worktree[];
   users: User[]; // All users for multiplayer metadata
@@ -61,7 +63,7 @@ export interface AppProps {
   onNewWorktreeModalClose?: () => void; // Called when new worktree modal closes
   onCreateSession?: (config: NewSessionConfig, boardId: string) => Promise<string | null>;
   onForkSession?: (sessionId: string, prompt: string) => Promise<void>;
-  onSpawnSession?: (sessionId: string, prompt: string) => Promise<void>;
+  onSpawnSession?: (sessionId: string, config: string | Partial<SpawnConfig>) => Promise<void>;
   onSendPrompt?: (sessionId: string, prompt: string, permissionMode?: PermissionMode) => void;
   onUpdateSession?: (sessionId: string, updates: Partial<Session>) => void;
   onDeleteSession?: (sessionId: string) => void;
@@ -267,7 +269,7 @@ export const App: React.FC<AppProps> = ({
     // If board_id is provided and worktree was created, assign it to the board
     if (worktree && config.board_id) {
       await onUpdateWorktree?.(worktree.worktree_id, {
-        board_id: config.board_id as import('@agor/core/types').BoardID,
+        board_id: config.board_id as BoardID,
       });
     }
 
@@ -314,9 +316,11 @@ export const App: React.FC<AppProps> = ({
     }
   };
 
-  const handleSubsession = (prompt: string) => {
+  const handleSubsession = (config: string | Partial<SpawnConfig>) => {
     if (selectedSessionId) {
-      onSpawnSession?.(selectedSessionId, prompt);
+      // Handle both legacy string prompt and new SpawnConfig
+      const spawnConfig = typeof config === 'string' ? { prompt: config } : config;
+      onSpawnSession?.(selectedSessionId, spawnConfig);
     }
   };
 

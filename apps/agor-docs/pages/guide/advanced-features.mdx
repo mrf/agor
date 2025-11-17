@@ -254,9 +254,27 @@ When a PR is merged or feature is complete, you often want to clean up disk spac
 
 ---
 
+## 🤖 Spawned Subsessions with Callbacks
+
+**Delegate work to specialized subagents that report back when finished.**
+
+Agor's subsessions enable powerful multi-agent orchestration:
+
+- **Non-blocking** - Parent remains responsive while subsessions work
+- **Multi-tool support** - Use Claude, Codex, Gemini, or OpenCode
+- **Fully introspectable** - Complete conversation and git history
+- **Hierarchical** - Children can spawn their own subsessions
+
+This feature unlocks capabilities not available in native agent SDKs, including subsession support for Codex, Gemini, and OpenCode.
+
+**[Read the full guide →](/guide/spawned-subsessions)**
+
+---
+
 ## 📚 Related Docs
 
 - [Concepts](/guide/concepts) - Understanding worktrees, sessions, and boards
+- [Spawned Subsessions](/guide/spawned-subsessions) - Multi-agent orchestration with callbacks
 - [Environments](/guide/environment-configuration) - Dev environment setup
 - [Agor MCP Server](/guide/internal-mcp) - MCP integration and session tools
 - [SDK Comparison](/guide/sdk-comparison) - Claude vs Codex vs Gemini

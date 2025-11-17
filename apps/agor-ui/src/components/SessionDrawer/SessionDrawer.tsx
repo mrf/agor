@@ -8,6 +8,7 @@ import type {
   PermissionScope,
   Repo,
   Session,
+  SpawnConfig,
   User,
   Worktree,
 } from '@agor/core/types';
@@ -46,6 +47,7 @@ import { compileTemplate } from '../../utils/templates';
 import { AutocompleteTextarea } from '../AutocompleteTextarea';
 import { ConversationView } from '../ConversationView';
 import { EnvironmentPill } from '../EnvironmentPill';
+import { ForkSpawnModal } from '../ForkSpawnModal';
 import { CreatedByTag } from '../metadata';
 import { PermissionModeSelector } from '../PermissionModeSelector';
 import {
@@ -89,7 +91,7 @@ interface SessionDrawerProps {
   onClose: () => void;
   onSendPrompt?: (prompt: string, permissionMode?: PermissionMode) => void;
   onFork?: (prompt: string) => void;
-  onSubsession?: (prompt: string) => void;
+  onSubsession?: (config: string | Partial<SpawnConfig>) => void;
   onPermissionDecision?: (
     sessionId: string,
     requestId: string,
@@ -185,6 +187,7 @@ const SessionDrawer = ({
   const [scrollToBottom, setScrollToBottom] = React.useState<(() => void) | null>(null);
   const [isStopping, setIsStopping] = React.useState(false);
   const [queuedMessages, setQueuedMessages] = React.useState<Message[]>([]);
+  const [spawnModalOpen, setSpawnModalOpen] = React.useState(false);
 
   // Fetch tasks for this session to calculate token totals
   const currentUser = users?.find((u) => u.user_id === currentUserId) || null;
@@ -482,6 +485,69 @@ const SessionDrawer = ({
       setInputValue('');
       draftsRef.current.delete(session.session_id);
     }
+  };
+
+  const handleSpawnModalConfirm = async (config: string | Partial<SpawnConfig>) => {
+    // Render the template with the SpawnConfig and send it as a prompt to the parent agent
+    // The parent agent will then use its context to create a rich prompt and spawn via MCP
+    if (typeof config === 'string') {
+      // Simple string prompt (shouldn't happen from modal, but handle it)
+      const metaPrompt = compiledSpawnSubsessionTemplate({ userPrompt: config });
+      await onSendPrompt?.(metaPrompt, permissionMode);
+    } else {
+      // Full SpawnConfig from advanced modal - render template with all config
+      const hasConfig =
+        config.agent !== undefined ||
+        config.permissionMode !== undefined ||
+        config.modelConfig !== undefined ||
+        config.codexSandboxMode !== undefined ||
+        config.codexApprovalPolicy !== undefined ||
+        config.codexNetworkAccess !== undefined ||
+        (config.mcpServerIds?.length ?? 0) > 0 ||
+        config.enableCallback !== undefined ||
+        config.includeLastMessage !== undefined ||
+        config.includeOriginalPrompt !== undefined ||
+        config.extraInstructions !== undefined;
+
+      // Import the full template compiler from ForkSpawnModal
+      // (We'll use the same Handlebars instance)
+      const Handlebars = await import('handlebars');
+
+      // Register helper to check if value is defined (not undefined)
+      // This allows us to distinguish between false and undefined
+      Handlebars.registerHelper('isDefined', function (value) {
+        return value !== undefined;
+      });
+
+      const compiledTemplate = Handlebars.compile(spawnSubsessionTemplate);
+
+      const metaPrompt = compiledTemplate({
+        userPrompt: config.prompt || '',
+        hasConfig,
+        agenticTool: config.agent,
+        permissionMode: config.permissionMode,
+        modelConfig: config.modelConfig,
+        codexSandboxMode: config.codexSandboxMode,
+        codexApprovalPolicy: config.codexApprovalPolicy,
+        codexNetworkAccess: config.codexNetworkAccess,
+        mcpServerIds: config.mcpServerIds,
+        hasCallbackConfig:
+          config.enableCallback !== undefined ||
+          config.includeLastMessage !== undefined ||
+          config.includeOriginalPrompt !== undefined,
+        callbackConfig: {
+          enableCallback: config.enableCallback,
+          includeLastMessage: config.includeLastMessage,
+          includeOriginalPrompt: config.includeOriginalPrompt,
+        },
+        extraInstructions: config.extraInstructions,
+      });
+
+      await onSendPrompt?.(metaPrompt, permissionMode);
+    }
+
+    setSpawnModalOpen(false);
+    setInputValue(''); // Clear input after spawning
   };
 
   const handlePermissionModeChange = (newMode: PermissionMode) => {
@@ -984,6 +1050,13 @@ const SessionDrawer = ({
                     loading={isStopping}
                   />
                 </Tooltip>
+                <Tooltip title="Advanced Spawn Options">
+                  <Button
+                    icon={<SettingOutlined />}
+                    onClick={() => setSpawnModalOpen(true)}
+                    disabled={connectionDisabled || isRunning || !inputValue.trim()}
+                  />
+                </Tooltip>
                 <Tooltip title={isRunning ? 'Session is running...' : 'Fork Session'}>
                   <Button
                     icon={<ForkOutlined />}
@@ -1011,6 +1084,18 @@ const SessionDrawer = ({
           </Space>
         </Space>
       </div>
+
+      {/* Advanced Spawn Modal */}
+      <ForkSpawnModal
+        open={spawnModalOpen}
+        action="spawn"
+        session={session}
+        currentUser={users.find((u) => u.user_id === currentUserId)}
+        mcpServers={mcpServers}
+        initialPrompt={inputValue}
+        onConfirm={handleSpawnModalConfirm}
+        onCancel={() => setSpawnModalOpen(false)}
+      />
     </Drawer>
   );
 };

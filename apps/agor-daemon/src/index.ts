@@ -170,7 +170,6 @@ interface FeathersSocket extends Socket {
 
 // Expand ~ to home directory in database path
 import { expandPath, extractDbFilePath } from '@agor/core/utils/path';
-import { normalizeRawSdkResponse } from '@agor/core/utils/sdk-normalizer';
 
 const DB_PATH = expandPath(process.env.AGOR_DB_PATH || 'file:~/.agor/agor.db');
 
@@ -583,7 +582,6 @@ async function main() {
   // Join all new connections to 'everybody' channel initially
   app.on('connection', (connection: unknown) => {
     app.channel('everybody').join(connection as never);
-    console.log('🔌 New connection joined everybody channel');
   });
 
   // Note: The 'login' event is fired by FeathersJS authentication service
@@ -694,7 +692,8 @@ async function main() {
 
   // Register core services
   // NOTE: Pass app instance for user preferences access (needed for cross-tool spawning and ready_for_prompt updates)
-  app.use('/sessions', createSessionsService(db, app));
+  const sessionsService = createSessionsService(db, app) as unknown as SessionsServiceImpl;
+  app.use('/sessions', sessionsService);
   app.use('/tasks', createTasksService(db, app));
   app.use('/leaderboard', createLeaderboardService(db));
   const messagesService = createMessagesService(db) as unknown as MessagesServiceImpl;
@@ -971,7 +970,7 @@ async function main() {
   // Publish service events to all connected clients
   // All services have requireAuth hooks, so only authenticated users can access them
   // This means any connection that successfully calls a service is authenticated
-  app.publish(() => {
+  app.publish((data, context) => {
     // Broadcast to all connected clients (they're all authenticated due to requireAuth)
     return app.channel('everybody');
   });
@@ -1640,8 +1639,7 @@ async function main() {
     },
   });
 
-  // Configure custom methods for sessions service
-  const sessionsService = app.service('sessions') as unknown as SessionsServiceImpl;
+  // Configure custom methods for sessions service (using sessionsService from line 700)
   app.use('/sessions/:id/fork', {
     async create(data: { prompt: string; task_id?: string }, params: RouteParams) {
       ensureMinimumRole(params, 'member', 'fork sessions');
@@ -1655,10 +1653,7 @@ async function main() {
   });
 
   app.use('/sessions/:id/spawn', {
-    async create(
-      data: { prompt: string; title?: string; agent?: string; task_id?: string },
-      params: RouteParams
-    ) {
+    async create(data: Partial<import('@agor/core/types').SpawnConfig>, params: RouteParams) {
       ensureMinimumRole(params, 'member', 'spawn sessions');
       const id = params.route?.id;
       if (!id) throw new Error('Session ID required');
@@ -1682,18 +1677,19 @@ async function main() {
 
   /**
    * Helper: Safely patch an entity, returning false if it was deleted mid-execution
+   * IMPORTANT: Uses app.service() to trigger WebSocket event broadcasting
    */
   async function safePatch<T>(
-    service: {
-      get: (id: string) => Promise<T>;
-      patch: (id: string, data: Partial<T>) => Promise<T>;
-    },
+    serviceName: string,
     id: string,
     data: Partial<T>,
-    entityType: string
+    entityType: string,
+    params?: RouteParams
   ): Promise<boolean> {
     try {
-      await service.patch(id, data);
+      // IMPORTANT: Use app.service() instead of service instance to go through
+      // FeathersJS service layer and trigger app.publish() for WebSocket events
+      await app.service(serviceName).patch(id, data, params || {});
       return true;
     } catch (error) {
       // Handle entity deletion mid-execution (NotFoundError from DrizzleService)
@@ -1798,10 +1794,19 @@ async function main() {
       );
 
       // Update session with new task immediately and set status to running
-      await sessionsService.patch(id, {
-        tasks: [...session.tasks, task.task_id],
-        status: SessionStatus.RUNNING,
-      });
+      console.log(
+        `🔄 [Prompt] Setting session ${id.substring(0, 8)} to RUNNING (was: ${session.status})`
+      );
+      // IMPORTANT: Use app.service() instead of sessionsService to go through
+      // FeathersJS service layer and trigger app.publish() for WebSocket events
+      await app.service('sessions').patch(
+        id,
+        {
+          tasks: [...session.tasks, task.task_id],
+          status: SessionStatus.RUNNING,
+        },
+        params
+      );
 
       // Create streaming callbacks for real-time UI updates
       // Custom events are registered via app.use('/messages', service, { events: [...] })
@@ -1999,7 +2004,7 @@ async function main() {
 
                 // Still update message range for completeness
                 await safePatch(
-                  tasksService,
+                  'tasks',
                   task.task_id,
                   {
                     message_range: {
@@ -2009,7 +2014,8 @@ async function main() {
                       end_timestamp: endTimestamp,
                     },
                   },
-                  'Task'
+                  'Task',
+                  params
                 );
               } else {
                 // Safe to mark as completed
@@ -2054,7 +2060,7 @@ async function main() {
                 }
 
                 const updated = await safePatch(
-                  tasksService,
+                  'tasks',
                   task.task_id,
                   {
                     status: TaskStatus.COMPLETED,
@@ -2137,7 +2143,8 @@ async function main() {
                       sha_at_end: gitStateAtEnd,
                     },
                   },
-                  'Task'
+                  'Task',
+                  params
                 );
 
                 if (updated) {
@@ -2148,14 +2155,16 @@ async function main() {
               // Token accounting is handled via raw_sdk_response and normalizers
 
               await safePatch(
-                sessionsService,
+                'sessions',
                 id,
                 {
                   message_count: session.message_count + totalMessages,
                   status: SessionStatus.IDLE,
+                  ready_for_prompt: true, // Set atomically with status to avoid race condition
                   // Token accounting handled via normalizeRawSdkResponse() - no session-level storage needed
                 },
-                'Session'
+                'Session',
+                params
               );
 
               // Check for queued messages and auto-process next one
@@ -2190,7 +2199,7 @@ async function main() {
             } catch (error) {
               console.error(`❌ Error completing task ${task.task_id}:`, error);
               // Try to mark task as failed (may also fail if deleted)
-              await safePatch(tasksService, task.task_id, { status: TaskStatus.FAILED }, 'Task');
+              await safePatch('tasks', task.task_id, { status: TaskStatus.FAILED }, 'Task', params);
             }
           })
           .catch(async (error) => {
@@ -2228,7 +2237,7 @@ async function main() {
               );
               console.warn(`   Clearing session ID - next prompt will start fresh`);
 
-              await safePatch(sessionsService, id, { sdk_session_id: undefined }, 'Session');
+              await safePatch('sessions', id, { sdk_session_id: undefined }, 'Session', params);
             } else if (isExitCode1 && hasResumeSession && !isLikelyConfigIssue) {
               // Generic exit code 1 with resume session (not explicitly stale)
               console.warn(
@@ -2238,7 +2247,7 @@ async function main() {
                 `   Session should have been validated before SDK call - clearing as safety measure`
               );
 
-              await safePatch(sessionsService, id, { sdk_session_id: undefined }, 'Session');
+              await safePatch('sessions', id, { sdk_session_id: undefined }, 'Session', params);
             } else if (isExitCode1 && hasResumeSession && isLikelyConfigIssue) {
               console.error(`❌ Exit code 1 due to configuration issue:`);
               console.error(`   ${errorMessage.substring(0, 200)}`);
@@ -2251,16 +2260,26 @@ async function main() {
 
             // Mark task as failed with error message and set session back to idle
             await safePatch(
-              tasksService,
+              'tasks',
               task.task_id,
               {
                 status: TaskStatus.FAILED,
                 report: errorMessage, // Save error message so UI can display it
               },
-              'Task'
+              'Task',
+              params
             );
 
-            await safePatch(sessionsService, id, { status: SessionStatus.IDLE }, 'Session');
+            await safePatch(
+              'sessions',
+              id,
+              {
+                status: SessionStatus.IDLE,
+                ready_for_prompt: true, // Set atomically with status to avoid race condition
+              },
+              'Session',
+              params
+            );
           });
       });
 
@@ -2363,9 +2382,16 @@ async function main() {
       // PHASE 3: Update final status based on stop result
       if (result.success) {
         // Update session status back to idle
-        await sessionsService.patch(id, {
-          status: SessionStatus.IDLE,
-        });
+        // IMPORTANT: Use app.service() instead of sessionsService to go through
+        // FeathersJS service layer and trigger app.publish() for WebSocket events
+        await app.service('sessions').patch(
+          id,
+          {
+            status: SessionStatus.IDLE,
+            ready_for_prompt: true, // Set atomically with status
+          },
+          params
+        );
 
         // Update task status to 'stopped'
         if (runningTasksArray.length > 0) {
@@ -2532,6 +2558,16 @@ async function main() {
 
     console.log(`✅ Queued message triggered for session ${sessionId.substring(0, 8)}`);
   }
+
+  // Inject queue processor into sessions service
+  // Used by callback system to immediately process queued callbacks
+  sessionsService.setQueueProcessor(async (sessionId: SessionID, params?: RouteParams) => {
+    try {
+      await processNextQueuedMessage(sessionId, params || {});
+    } catch (error) {
+      console.error(`❌ [Sessions] Failed to process queued message:`, error);
+    }
+  });
 
   // Permission decision endpoint
   app.use('/sessions/:id/permission-decision', {
@@ -3069,9 +3105,17 @@ async function main() {
   if (orphanedSessions.length > 0) {
     console.log(`   Found ${orphanedSessions.length} orphaned session(s) with RUNNING status`);
     for (const session of orphanedSessions) {
-      await sessionsService.patch(session.session_id, {
-        status: SessionStatus.IDLE,
-      });
+      // IMPORTANT: Use app.service() instead of sessionsService to go through
+      // FeathersJS service layer and trigger app.publish() for WebSocket events
+      // For internal/system operations, pass empty params object
+      await app.service('sessions').patch(
+        session.session_id,
+        {
+          status: SessionStatus.IDLE,
+          ready_for_prompt: true, // Set atomically with status
+        },
+        {}
+      );
       console.log(
         `   ✓ Marked session ${session.session_id.substring(0, 8)} as idle (was: ${session.status})`
       );
@@ -3091,9 +3135,17 @@ async function main() {
       const session = await sessionsService.get(sessionId as Id);
       // If session is still marked as RUNNING after orphaned task cleanup, set to IDLE
       if (session.status === SessionStatus.RUNNING) {
-        await sessionsService.patch(sessionId as Id, {
-          status: SessionStatus.IDLE,
-        });
+        // IMPORTANT: Use app.service() instead of sessionsService to go through
+        // FeathersJS service layer and trigger app.publish() for WebSocket events
+        // For internal/system operations, pass empty params object
+        await app.service('sessions').patch(
+          sessionId as Id,
+          {
+            status: SessionStatus.IDLE,
+            ready_for_prompt: true, // Set atomically with status
+          },
+          {}
+        );
         console.log(
           `   ✓ Marked session ${sessionId.substring(0, 8)} as idle (had orphaned tasks)`
         );

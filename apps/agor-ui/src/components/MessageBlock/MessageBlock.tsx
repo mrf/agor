@@ -19,9 +19,7 @@ import {
 } from '@agor/core/types';
 import { RobotOutlined } from '@ant-design/icons';
 import { Bubble } from '@ant-design/x';
-import { Tooltip, Typography, theme } from 'antd';
-
-const { Text } = Typography;
+import { Tooltip, theme } from 'antd';
 
 import type React from 'react';
 import { formatTimestampWithRelative } from '../../utils/time';
@@ -57,8 +55,6 @@ interface ThinkingContentBlock {
   text: string;
   signature?: string;
 }
-
-type ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock | ThinkingContentBlock;
 
 interface MessageBlockProps {
   message:
@@ -159,7 +155,7 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({
           }
           onDeny={
             canInteract && onPermissionDecision && sessionId && taskId
-              ? (messageId) => {
+              ? (_messageId) => {
                   onPermissionDecision(
                     sessionId,
                     content.request_id,
@@ -180,6 +176,7 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({
   const isTaskPrompt = isTaskToolPrompt(message);
   const isTaskResult = isTaskToolResult(message);
   const isSystem = message.role === 'system';
+  const isCallback = message.metadata?.is_agor_callback === true;
 
   // Determine if this should be displayed as user or agent message
   const isUser = message.role === 'user' && !isTaskPrompt && !isTaskResult;
@@ -367,6 +364,12 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({
         (() => {
           const avatar = isUser ? (
             <AgorAvatar>{userEmoji}</AgorAvatar>
+          ) : isCallback ? (
+            <img
+              src={`${import.meta.env.BASE_URL}favicon.png`}
+              alt="Agor"
+              style={{ width: 32, height: 32, borderRadius: '50%' }}
+            />
           ) : agentic_tool ? (
             <ToolIcon tool={agentic_tool} size={32} />
           ) : (
@@ -426,10 +429,14 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({
                     })}
                   </div>
                 }
-                variant={isUser ? 'filled' : 'outlined'}
+                variant={isUser || isCallback ? 'filled' : 'outlined'}
                 styles={{
                   content: {
-                    backgroundColor: isUser ? token.colorPrimaryBg : undefined,
+                    backgroundColor: isCallback
+                      ? token.colorWarningBg
+                      : isUser
+                        ? token.colorPrimaryBg
+                        : undefined,
                     color: isUser ? '#fff' : undefined,
                   },
                 }}
@@ -450,7 +457,13 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({
       {/* Response text after tools */}
       {hasTextAfter &&
         (() => {
-          const avatar = agentic_tool ? (
+          const avatar = isCallback ? (
+            <img
+              src={`${import.meta.env.BASE_URL}favicon.png`}
+              alt="Agor"
+              style={{ width: 32, height: 32, borderRadius: '50%' }}
+            />
+          ) : agentic_tool ? (
             <ToolIcon tool={agentic_tool} size={32} />
           ) : (
             <AgorAvatar
@@ -498,7 +511,16 @@ export const MessageBlock: React.FC<MessageBlockProps> = ({
                     })()}
                   </div>
                 }
-                variant="outlined"
+                variant={isCallback ? 'filled' : 'outlined'}
+                styles={
+                  isCallback
+                    ? {
+                        content: {
+                          backgroundColor: token.colorWarningBg,
+                        },
+                      }
+                    : undefined
+                }
               />
             </div>
           );

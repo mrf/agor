@@ -1,4 +1,4 @@
-import type { Repo, Session, Task, User, Worktree } from '@agor/core/types';
+import type { Repo, Session, SpawnConfig, Task, User, Worktree } from '@agor/core/types';
 import {
   BranchesOutlined,
   ClockCircleOutlined,
@@ -60,7 +60,7 @@ interface WorktreeCardProps {
   onSessionClick?: (sessionId: string) => void;
   onCreateSession?: (worktreeId: string) => void;
   onForkSession?: (sessionId: string, prompt: string) => Promise<void>;
-  onSpawnSession?: (sessionId: string, prompt: string) => Promise<void>;
+  onSpawnSession?: (sessionId: string, config: string | Partial<SpawnConfig>) => Promise<void>;
   onArchiveOrDelete?: (
     worktreeId: string,
     options: {
@@ -126,13 +126,16 @@ const WorktreeCard = ({
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
 
   // Handle fork/spawn modal confirm
-  const handleForkSpawnConfirm = async (prompt: string) => {
+  const handleForkSpawnConfirm = async (config: string | Partial<SpawnConfig>) => {
     if (!forkSpawnModal.session) return;
 
     if (forkSpawnModal.action === 'fork') {
+      // Fork only takes a string prompt
+      const prompt = typeof config === 'string' ? config : config.prompt || '';
       await onForkSession?.(forkSpawnModal.session.session_id, prompt);
     } else {
-      await onSpawnSession?.(forkSpawnModal.session.session_id, prompt);
+      // Spawn accepts full SpawnConfig
+      await onSpawnSession?.(forkSpawnModal.session.session_id, config);
     }
   };
 
@@ -681,6 +684,7 @@ const WorktreeCard = ({
         open={forkSpawnModal.open}
         action={forkSpawnModal.action}
         session={forkSpawnModal.session}
+        currentUser={users.find((u) => u.user_id === currentUserId)}
         onConfirm={handleForkSpawnConfirm}
         onCancel={() =>
           setForkSpawnModal({

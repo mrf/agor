@@ -41,7 +41,6 @@ export interface SchedulerConfig {
 }
 
 export class SchedulerService {
-  private db: Database;
   private app: Application;
   private config: Required<SchedulerConfig>;
   private intervalHandle?: NodeJS.Timeout;
@@ -50,7 +49,6 @@ export class SchedulerService {
   private sessionRepo: SessionRepository;
 
   constructor(db: Database, app: Application, config: SchedulerConfig = {}) {
-    this.db = db;
     this.app = app;
     this.config = {
       tickInterval: config.tickInterval ?? 30000, // 30 seconds

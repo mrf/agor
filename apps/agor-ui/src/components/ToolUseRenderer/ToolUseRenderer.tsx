@@ -35,8 +35,6 @@ interface ToolResultBlock {
   is_error?: boolean;
 }
 
-type ContentBlock = { type: 'text'; text: string } | ToolUseBlock | ToolResultBlock;
-
 interface ToolUseRendererProps {
   /**
    * Tool use block with invocation details

@@ -492,12 +492,10 @@ export class WorktreesService extends DrizzleService<Worktree, Partial<Worktree>
 
     // Remove timestamps for comparison - create new objects without timestamp
     if (oldState?.last_health_check) {
-      // biome-ignore lint/correctness/noUnusedVariables: extracting to remove from object
       const { timestamp, ...healthCheck } = oldState.last_health_check;
       oldState.last_health_check = healthCheck as typeof oldState.last_health_check;
     }
     if (newState?.last_health_check) {
-      // biome-ignore lint/correctness/noUnusedVariables: extracting to remove from object
       const { timestamp, ...healthCheck } = newState.last_health_check;
       newState.last_health_check = healthCheck as typeof newState.last_health_check;
     }

@@ -62,8 +62,6 @@ interface TextBlock {
   text: string;
 }
 
-type ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock;
-
 interface AgentChainProps {
   /**
    * Messages containing thoughts and/or tool uses

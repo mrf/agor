@@ -14,7 +14,7 @@
 
 import type { AgorClient } from '@agor/core/api';
 import type { MessageID, PermissionScope, SessionID, User } from '@agor/core/types';
-import { Alert, Spin, Typography, theme } from 'antd';
+import { Alert, Spin, Typography } from 'antd';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStreamingMessages, useTasks } from '../../hooks';
 import type { StreamingMessage } from '../../hooks/useStreamingMessages';
@@ -122,7 +122,6 @@ export const ConversationView = React.memo<ConversationViewProps>(
     emptyStateMessage = 'No messages yet. Send a prompt to start the conversation.',
   }) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const { token } = theme.useToken();
 
     // Check if user is scrolled near the bottom (within 100px)
     const isNearBottom = useCallback(() => {

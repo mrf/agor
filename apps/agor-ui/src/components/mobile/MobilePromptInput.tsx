@@ -1,8 +1,6 @@
 import { SendOutlined } from '@ant-design/icons';
 import { Input, theme } from 'antd';
 
-const { TextArea } = Input;
-
 interface MobilePromptInputProps {
   onSend: (prompt: string) => void;
   disabled?: boolean;
