@@ -13,6 +13,8 @@ export default class DbMigrate extends Command {
   static examples = ['<%= config.bin %> <%= command.id %>'];
 
   async run(): Promise<void> {
+    await this.parse(DbMigrate);
+
     try {
       // Determine database URL (same logic as daemon)
       // Priority: DATABASE_URL > AGOR_DB_PATH > default SQLite path
