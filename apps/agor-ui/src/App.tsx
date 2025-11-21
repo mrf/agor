@@ -15,14 +15,13 @@ import type {
   Worktree,
 } from '@agor/core/types';
 import { Alert, App as AntApp, ConfigProvider, Spin, theme } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AVAILABLE_AGENTS } from './components/AgentSelectionGrid';
 import { App as AgorApp } from './components/App';
 import { LoginPage } from './components/LoginPage';
 import { MobileApp } from './components/mobile/MobileApp';
 import { SandboxBanner } from './components/SandboxBanner';
-import { WelcomeModal } from './components/WelcomeModal';
 import type { WorktreeUpdate } from './components/WorktreeModal/tabs/GeneralTab';
 import { ConnectionProvider } from './contexts/ConnectionContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
@@ -143,12 +142,10 @@ function AppContent() {
   // Board actions
   const { createBoard, updateBoard, deleteBoard } = useBoardActions(client);
 
-  // Welcome modal state (onboarding for new users)
-  const [welcomeModalOpen, setWelcomeModalOpen] = useState(false);
+  // Onboarding state (for new users)
   const [settingsTabToOpen, setSettingsTabToOpen] = useState<string | null>(null);
   const [openUserSettings, setOpenUserSettings] = useState(false);
   const [openNewWorktree, setOpenNewWorktree] = useState(false);
-  const [inOnboardingFlow, setInOnboardingFlow] = useState(false);
 
   // Per-session prompt drafts (persists across session switches)
   const [promptDrafts, setPromptDrafts] = useState<Map<string, string>>(new Map());
@@ -168,24 +165,6 @@ function AppContent() {
   // This ensures we get the latest onboarding_completed status
   // Fall back to user from auth if users Map hasn't loaded yet
   const currentUser = user ? userById.get(user.user_id) || user : null;
-
-  // Memoize welcome modal stats to prevent unnecessary re-renders
-  const welcomeStats = useMemo(
-    () => ({
-      repoCount: repoById.size,
-      worktreeCount: worktreeById.size,
-      sessionCount: sessionById.size,
-    }),
-    [repoById.size, worktreeById.size, sessionById.size]
-  );
-
-  // Show welcome modal if user hasn't completed onboarding
-  useEffect(() => {
-    // Only show modal if onboarding_completed is explicitly false (not undefined)
-    if (!loading && currentUser && currentUser.onboarding_completed === false) {
-      setWelcomeModalOpen(true);
-    }
-  }, [loading, currentUser]);
 
   // NOW handle conditional rendering based on state
   // Show loading while fetching auth config
@@ -946,69 +925,17 @@ function AppContent() {
   const _worktreeOptions = allOptions.filter((opt) => opt.type === 'managed-worktree');
   const _repoOptions = allOptions.filter((opt) => opt.type === 'managed');
 
-  // Handle onboarding dismissal
-  const handleDismissOnboarding = async () => {
-    if (!client || !user) return;
-    setInOnboardingFlow(false);
-    try {
-      await client.service('users').patch(user.user_id, {
-        onboarding_completed: true,
-      });
-    } catch (error) {
-      showError(
-        `Failed to update onboarding status: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-  };
-
-  // Welcome modal action handlers - open settings to relevant tab
-  const handleWelcomeAddRepo = () => {
-    setInOnboardingFlow(true);
-    setWelcomeModalOpen(false);
-    setSettingsTabToOpen('repos');
-  };
-
-  const handleWelcomeCreateWorktree = () => {
-    setInOnboardingFlow(true);
-    setWelcomeModalOpen(false);
-    setOpenNewWorktree(true);
-  };
-
-  const handleWelcomeNewSession = () => {
-    setInOnboardingFlow(true);
-    setWelcomeModalOpen(false);
-    // TODO: Should this open a new session modal instead? For now just close.
-  };
-
-  const handleWelcomeOpenApiKeys = () => {
-    setInOnboardingFlow(true);
-    setWelcomeModalOpen(false);
-    setOpenUserSettings(true); // Open user settings modal directly (has API Keys tab)
-  };
-
-  // Re-open welcome modal after completing sub-actions during onboarding
+  // Modal close handlers
   const handleSettingsClose = () => {
     setSettingsTabToOpen(null);
-    // Re-open welcome modal if still in onboarding flow
-    if (inOnboardingFlow && currentUser && !currentUser.onboarding_completed) {
-      setWelcomeModalOpen(true);
-    }
   };
 
   const handleUserSettingsClose = () => {
     setOpenUserSettings(false);
-    // Re-open welcome modal if still in onboarding flow
-    if (inOnboardingFlow && currentUser && !currentUser.onboarding_completed) {
-      setWelcomeModalOpen(true);
-    }
   };
 
   const handleNewWorktreeModalClose = () => {
     setOpenNewWorktree(false);
-    // Re-open welcome modal if still in onboarding flow
-    if (inOnboardingFlow && currentUser && !currentUser.onboarding_completed) {
-      setWelcomeModalOpen(true);
-    }
   };
 
   // Render main app
@@ -1052,18 +979,6 @@ function AppContent() {
           element={
             <>
               <SandboxBanner />
-              {welcomeModalOpen && (
-                <WelcomeModal
-                  open={welcomeModalOpen}
-                  onClose={() => setWelcomeModalOpen(false)}
-                  stats={welcomeStats}
-                  onAddRepo={handleWelcomeAddRepo}
-                  onCreateWorktree={handleWelcomeCreateWorktree}
-                  onNewSession={handleWelcomeNewSession}
-                  onOpenApiKeys={handleWelcomeOpenApiKeys}
-                  onDismiss={handleDismissOnboarding}
-                />
-              )}
               <AgorApp
                 client={client}
                 user={currentUser}
