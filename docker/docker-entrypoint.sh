@@ -3,22 +3,38 @@ set -e
 
 echo "🚀 Starting Agor development environment..."
 
-# Fix volume permissions FIRST (before any operations)
-# Mounted volumes may be created with wrong ownership, causing EACCES errors
-echo "🔧 Fixing volume permissions..."
-sudo chown -R agor:agor /app
+# Fix volume permissions only if needed (defensive, but usually unnecessary with anonymous volumes)
+# On most systems, Docker handles ownership correctly, but some Linux setups may need this
+if [ "$(stat -c '%U' /app)" != "agor" ]; then
+  echo "🔧 Fixing volume permissions..."
+  sudo chown -R agor:agor /app
+else
+  echo "✅ Volume permissions already correct"
+fi
 
-# Sync dependencies to match the mounted pnpm-lock.yaml
-# This ensures each worktree gets its exact dependencies, even if the Docker image
-# was built from a different worktree with different dependencies
-echo "📦 Syncing dependencies with pnpm-lock.yaml..."
-# Use --frozen-lockfile to use prebuilt binaries from Docker image (no rebuild)
-CI=true pnpm install --frozen-lockfile < /dev/null
-echo "✅ Dependencies synced"
+# Smart dependency sync: check if pnpm-lock.yaml changed
+# Anonymous volumes preserve Docker-built node_modules directly (no copy needed!)
+# Only run pnpm install if user modified dependencies
+echo "📦 Checking dependencies..."
 
-# Initialize husky git hooks (required for git commit hooks)
-echo "🎣 Initializing git hooks..."
-pnpm husky install
+# Create marker file on first run
+if [ ! -f "/app/node_modules/.synced-lockfile.yaml" ]; then
+  echo "✅ Using Docker-built dependencies (no copy needed)"
+  cp /app/pnpm-lock.yaml /app/node_modules/.synced-lockfile.yaml
+elif ! cmp -s /app/pnpm-lock.yaml /app/node_modules/.synced-lockfile.yaml; then
+  # Only install if lockfile changed (user added/removed dependencies)
+  echo "🔄 pnpm-lock.yaml changed - syncing dependencies..."
+  CI=true pnpm install --frozen-lockfile < /dev/null
+  cp /app/pnpm-lock.yaml /app/node_modules/.synced-lockfile.yaml
+  echo "✅ Dependencies synced"
+else
+  echo "✅ Dependencies up-to-date"
+fi
+
+# Skip husky in Docker (git hooks run on host, not in container)
+# Also avoids "fatal: not a git repository" error with worktrees where .git is a file, not a directory
+# If you need hooks in the container, run `pnpm husky install` manually after startup
+echo "⏭️  Skipping husky install (git hooks run on host, not in container)"
 
 # Start @agor/core in watch mode FIRST (for hot-reload during development)
 # We start this early and wait for initial build before running CLI commands
