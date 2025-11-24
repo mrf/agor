@@ -33,7 +33,7 @@ class MemoryStorage {
 /**
  * Create Feathers client connected to daemon with session token authentication
  *
- * @param daemonUrl - URL of the daemon (e.g., http://localhost:3063)
+ * @param daemonUrl - URL of the daemon (e.g., http://localhost:3030)
  * @param sessionToken - Session token for authentication
  * @returns Authenticated Feathers client
  */
@@ -106,7 +106,6 @@ export function getDaemonUrl(): string {
     return process.env.DAEMON_URL;
   }
 
-  // Default to localhost:3063 (daemon default port)
-  const port = process.env.DAEMON_PORT || process.env.PORT || '3063';
+  const port = process.env.DAEMON_PORT || process.env.PORT || '3030';
   return `http://localhost:${port}`;
 }
