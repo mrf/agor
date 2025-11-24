@@ -1,0 +1,93 @@
+// Agor Default Zellij Configuration
+// Optimized for embedded terminal usage with xterm.js frontend
+
+// Use custom Agor theme matching Ant Design dark theme
+theme "agor"
+
+themes {
+    agor {
+        // Base colors matching Ant Design dark theme
+        fg "#ffffff"           // Primary text (colorText)
+        bg "#141414"           // Background (colorBgContainer in dark mode)
+
+        // ANSI colors with Agor teal accent
+        black "#000000"
+        red "#ff4d4f"          // Ant Design colorError
+        green "#52c41a"        // Ant Design colorSuccess
+        yellow "#faad14"       // Ant Design colorWarning
+        blue "#1890ff"         // Ant Design colorInfo (blue variant)
+        magenta "#eb2f96"      // Ant Design magenta
+        cyan "#2e9a92"         // Agor teal (colorPrimary)
+        white "#f0f0f0"        // Light text
+        orange "#fa8c16"       // Ant Design orange
+
+        // Additional Zellij-specific colors
+        gray "#8c8c8c"         // Secondary text (colorTextSecondary)
+        purple "#722ed1"       // Ant Design purple
+        gold "#faad14"         // Ant Design gold
+        lime "#a0d911"         // Ant Design lime
+        green_light "#95de64"  // Lighter green
+        green_dark "#389e0d"   // Darker green
+        red_light "#ff7875"    // Lighter red
+        red_dark "#cf1322"     // Darker red
+    }
+}
+
+// Disable pane frames for cleaner embedded look
+pane_frames false
+
+// Enable mouse support
+mouse_mode true
+
+// Copy to clipboard on selection
+copy_on_select true
+
+// Clipboard management
+copy_command "pbcopy"  // macOS - will be ignored on Linux
+copy_clipboard "primary"
+
+// Scrollback buffer (10,000 lines)
+scroll_buffer_size 10000
+
+// Simplified UI (no extra decorations)
+simplified_ui false
+
+// Default layout - single pane
+default_layout "compact"
+
+// Session serialization for persistence
+session_serialization true
+
+// Auto-layout on creation
+auto_layout true
+
+// Prefer default shell
+default_shell "bash"
+
+// Terminal colors support
+on_force_close "quit"
+
+// Disable startup tips banner
+show_startup_tips false
+
+// Disable release notes banner
+show_release_notes false
+
+// UI configuration
+ui {
+    pane_frames {
+        rounded_corners false
+    }
+}
+
+// Keybindings - minimal to avoid conflicts with xterm.js
+keybinds {
+    normal {
+        // Disable default keybindings that might conflict
+        // We'll manage tabs programmatically via CLI actions
+    }
+
+    locked {
+        // Locked mode - pass all keys through to shell
+    }
+}

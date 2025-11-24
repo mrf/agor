@@ -66,7 +66,7 @@ export interface TerminalModalProps {
   onClose: () => void;
   client: AgorClient | null;
   user?: User | null;
-  worktreeId?: string; // Worktree context for tmux integration
+  worktreeId?: string; // Worktree context for Zellij integration
   initialCommands?: string[]; // Commands to execute after connection
 }
 
@@ -84,8 +84,8 @@ export const TerminalModal: React.FC<TerminalModalProps> = ({
   const [_terminalId, setTerminalId] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [sessionInfo, setSessionInfo] = useState<{
-    tmuxSession?: string;
-    tmuxReused?: boolean;
+    zellijSession?: string;
+    zellijReused?: boolean;
     worktreeName?: string;
   }>({});
 
@@ -151,11 +151,31 @@ export const TerminalModal: React.FC<TerminalModalProps> = ({
           },
         },
         theme: {
-          background: '#000000',
-          foreground: '#ffffff',
-          cursor: '#ffffff',
-          cyan: '#2e9a92', // Agor teal - used for ANSI color code 36
-          brightCyan: '#3db5ab', // Lighter teal for bright cyan - used for ANSI code 96
+          // Ant Design dark theme colors
+          background: '#141414', // colorBgContainer
+          foreground: '#ffffff', // colorText
+          cursor: '#2e9a92', // Agor teal
+          cursorAccent: '#141414',
+
+          // ANSI colors matching Ant Design palette
+          black: '#000000',
+          red: '#ff4d4f', // colorError
+          green: '#52c41a', // colorSuccess
+          yellow: '#faad14', // colorWarning
+          blue: '#1890ff', // colorInfo
+          magenta: '#eb2f96',
+          cyan: '#2e9a92', // Agor teal (colorPrimary)
+          white: '#f0f0f0',
+
+          // Bright colors
+          brightBlack: '#8c8c8c', // colorTextSecondary
+          brightRed: '#ff7875',
+          brightGreen: '#95de64',
+          brightYellow: '#ffc53d',
+          brightBlue: '#40a9ff',
+          brightMagenta: '#f759ab',
+          brightCyan: '#3db5ab', // Lighter teal
+          brightWhite: '#ffffff',
         },
       });
 
@@ -163,7 +183,12 @@ export const TerminalModal: React.FC<TerminalModalProps> = ({
       terminalRef.current = terminal;
 
       // Load Web Links addon for clickable URLs
-      terminal.loadAddon(new WebLinksAddon());
+      // Double-click to open (default behavior to avoid conflicts with Zellij mouse mode)
+      const webLinksAddon = new WebLinksAddon((event, uri) => {
+        console.log('[Terminal] Link clicked:', uri);
+        window.open(uri, '_blank', 'noopener,noreferrer');
+      });
+      terminal.loadAddon(webLinksAddon);
 
       terminal.writeln('🚀 Connecting to shell...');
 
@@ -176,8 +201,8 @@ export const TerminalModal: React.FC<TerminalModalProps> = ({
         })) as {
           terminalId: string;
           cwd: string;
-          tmuxSession: string;
-          tmuxReused: boolean;
+          zellijSession: string;
+          zellijReused: boolean;
           worktreeName?: string;
         };
 
@@ -192,8 +217,8 @@ export const TerminalModal: React.FC<TerminalModalProps> = ({
         setIsConnected(true);
         transformData = expandOscHyperlinks;
         setSessionInfo({
-          tmuxSession: result.tmuxSession,
-          tmuxReused: result.tmuxReused,
+          zellijSession: result.zellijSession,
+          zellijReused: result.zellijReused,
           worktreeName: result.worktreeName,
         });
         terminal.clear();
@@ -256,7 +281,7 @@ export const TerminalModal: React.FC<TerminalModalProps> = ({
       modal.confirm({
         title: 'Close Terminal?',
         content:
-          'The tmux session will continue running in the background. You can reconnect by reopening the terminal.',
+          'The Zellij session will continue running in the background. You can reconnect by reopening the terminal.',
         okText: 'Close',
         okType: 'primary',
         cancelText: 'Cancel',
