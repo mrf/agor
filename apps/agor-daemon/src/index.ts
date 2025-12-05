@@ -820,17 +820,39 @@ async function main() {
 
     const daemonUrl = `http://localhost:${DAEMON_PORT}`;
 
-    // Build spawn command with optional Unix user impersonation
-    // Prefer session.unix_username (immutable, set at session creation)
-    // Fall back to config.execution.executor_unix_user for backward compatibility
-    console.log('[Daemon] Checking unix_username for executor spawn:', {
+    // =========================================================================
+    // DETERMINE UNIX USER FOR EXECUTOR BASED ON unix_user_mode
+    // Uses centralized logic from @agor/core/unix
+    // =========================================================================
+    const { resolveUnixUserForImpersonation, validateResolvedUnixUser, UnixUserNotFoundError } =
+      await import('@agor/core/unix');
+
+    const unixUserMode = (config.execution?.unix_user_mode ?? 'simple') as
+      | 'simple'
+      | 'insulated'
+      | 'opportunistic'
+      | 'strict';
+    const configExecutorUser = config.execution?.executor_unix_user;
+    const sessionUnixUser = session.unix_username;
+
+    console.log('[Daemon] Determining executor Unix user:', {
       sessionId: session.session_id.slice(0, 8),
-      session_unix_username: session.unix_username,
-      session_unix_username_type: typeof session.unix_username,
-      session_unix_username_length: session.unix_username?.length,
-      config_executor_unix_user: config.execution?.executor_unix_user,
+      unixUserMode,
+      sessionUnixUser,
+      configExecutorUser,
     });
-    const executorUnixUser = session.unix_username || config.execution?.executor_unix_user;
+
+    // Use centralized impersonation resolution logic
+    const impersonationResult = resolveUnixUserForImpersonation({
+      mode: unixUserMode,
+      userUnixUsername: sessionUnixUser,
+      executorUnixUser: configExecutorUser,
+    });
+
+    const executorUnixUser = impersonationResult.unixUser;
+    const impersonationReason = impersonationResult.reason;
+
+    console.log(`[Daemon] Executor impersonation: ${impersonationReason}`);
 
     // Determine permission mode: explicit override > session config > 'default'
     // This ensures session settings (like bypassPermissions) are preserved unless explicitly overridden
@@ -854,6 +876,18 @@ async function main() {
       '--daemon-url',
       daemonUrl,
     ];
+
+    // Validate Unix user exists for modes that require it
+    try {
+      validateResolvedUnixUser(unixUserMode, executorUnixUser);
+    } catch (err) {
+      if (err instanceof UnixUserNotFoundError) {
+        throw new Error(
+          `${(err as InstanceType<typeof UnixUserNotFoundError>).message}. Ensure the Unix user is created before attempting to execute sessions.`
+        );
+      }
+      throw err;
+    }
 
     let spawnCommand: string;
     let spawnArgs: string[];
@@ -1052,23 +1086,24 @@ async function main() {
   }
 
   // Initialize Unix integration service for worktree isolation
-  // This service manages Unix groups and filesystem permissions for RBAC
+  // This service manages Unix groups, users, symlinks, and filesystem permissions for RBAC
   // Only initialize if RBAC is enabled
-  let unixIntegrationService: InstanceType<
-    typeof import('./services/unix-integration.js').UnixIntegrationService
-  > | null = null;
+  let unixIntegrationService: import('@agor/core/unix').UnixIntegrationService | null = null;
   if (worktreeRbacEnabled) {
-    const { UnixIntegrationService } = await import('./services/unix-integration.js');
-    unixIntegrationService = new UnixIntegrationService(db, {
-      enabled:
-        config.execution?.unix_user_mode !== 'simple' &&
-        config.execution?.unix_user_mode !== undefined,
-      cliPath: 'agor',
-      useSudo: true,
+    const { createUnixIntegrationService } = await import('./services/unix-integration.js');
+    const unixEnabled =
+      config.execution?.unix_user_mode !== 'simple' &&
+      config.execution?.unix_user_mode !== undefined;
+    unixIntegrationService = createUnixIntegrationService(db, {
+      enabled: unixEnabled,
+      autoManageSymlinks: unixEnabled,
     });
     console.log(
       `[Unix Integration] ${unixIntegrationService.isEnabled() ? 'Enabled' : 'Disabled'} (mode: ${config.execution?.unix_user_mode || 'simple'})`
     );
+
+    // Register on app for access by other services (e.g., worktree-owners)
+    app.set('unixIntegration', unixIntegrationService);
   }
 
   // Register repos service (accesses worktrees via app.service('worktrees'))
@@ -1873,6 +1908,62 @@ async function main() {
         },
       ],
       remove: [requireMinimumRole('admin', 'delete users')],
+    },
+    after: {
+      // After user create/patch: optionally ensure Unix user exists
+      create: [
+        async (context: HookContext) => {
+          const unixIntegration = app.get('unixIntegration') as
+            | import('@agor/core/unix').UnixIntegrationService
+            | undefined;
+          if (!unixIntegration?.isEnabled()) {
+            return context;
+          }
+
+          const user = context.result as User;
+          if (!user.unix_username) {
+            return context; // No unix_username set, skip Unix user creation
+          }
+
+          try {
+            await unixIntegration.ensureUnixUser(user.user_id);
+            console.log(`[Unix Integration] Ensured Unix user for: ${user.unix_username}`);
+          } catch (error) {
+            console.error('[Unix Integration] Failed to create Unix user:', error);
+            // Don't fail the request - Agor user is already created
+          }
+
+          return context;
+        },
+      ],
+      patch: [
+        async (context: HookContext) => {
+          const unixIntegration = app.get('unixIntegration') as
+            | import('@agor/core/unix').UnixIntegrationService
+            | undefined;
+          if (!unixIntegration?.isEnabled()) {
+            return context;
+          }
+
+          // Only handle if unix_username was just set
+          const data = context.data as { unix_username?: string };
+          if (!data?.unix_username) {
+            return context;
+          }
+
+          const user = context.result as User;
+
+          try {
+            await unixIntegration.ensureUnixUser(user.user_id);
+            console.log(`[Unix Integration] Ensured Unix user for: ${user.unix_username}`);
+          } catch (error) {
+            console.error('[Unix Integration] Failed to create Unix user:', error);
+            // Don't fail the request - Agor user is already updated
+          }
+
+          return context;
+        },
+      ],
     },
   });
 
